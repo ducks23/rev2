@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 """SlurmctldCharm."""
-import json
 import logging
 
 from interface_slurmctld import Slurmctld
@@ -82,28 +81,23 @@ class SlurmctldCharm(CharmBase):
             event.defer()
             return
 
-        slurm_config = self._slurmctld.get_slurm_config()
-        loaded_slurm_config = dict()
-
-        try:
-            loaded_slurm_config = json.loads(slurm_config)
-        except json.decoder.JSONDecodeError as e:
-            self.unit.status = BlockedStatus(
-                f"Cannot decode slurm config - {e}."
-            )
-            return
-
-        self._slurm_manager.render_config_and_restart(loaded_slurm_config)
+        slurm_config = self._slurmctld.get_slurm_config_from_relation()
+        self._slurm_manager.render_config_and_restart(slurm_config)
         self.unit.status = ActiveStatus("Slurmctld Available")
 
     def _check_status(self):
         munge_key = self._stored.munge_key
         slurm_installed = self._stored.slurm_installed
+        slurm_config_available = self._slurmctld.is_slurm_config_available()
 
-        if not (munge_key and slurm_installed):
+        if not (munge_key and slurm_installed and slurm_config_available):
             if not munge_key:
                 self.unit.status = BlockedStatus(
                     "NEED RELATION TO SLURM CONFIGURATOR"
+                )
+            elif not slurm_config_available:
+                self.unit.status = BlockedStatus(
+                    "WAITING ON SLURM CONFIG"
                 )
             else:
                 self.unit.status = BlockedStatus("SLURM NOT INSTALLED")

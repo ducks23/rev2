@@ -28,7 +28,6 @@ class SlurmdCharm(CharmBase):
 
         self._stored.set_default(
             munge_key=str(),
-            slurm_configurator_available=False,
         )
 
         self._slurm_manager = SlurmManager(self, "slurmd")
@@ -75,14 +74,29 @@ class SlurmdCharm(CharmBase):
             event.defer()
             return
 
+        slurm_config = self._slurmctld.get_slurm_config_from_relation()
+        self._slurm_manager.render_config_and_restart(slurm_config)
+        self.unit.status = ActiveStatus("Slurmctld Available")
+
     def _check_status(self):
-        slurm_configurator = self._stored.slurm_configurator_available
-        if not slurm_configurator:
-            self.unit.status = BlockedStatus(
-                "Waiting on slurm-configurator relation."
-            )
+        munge_key = self._stored.munge_key
+        slurm_installed = self._stored.slurm_installed
+        slurm_config_available = self._slurmd.is_slurm_config_available()
+
+        if not (munge_key and slurm_installed and slurm_config_available):
+            if not munge_key:
+                self.unit.status = BlockedStatus(
+                    "NEED RELATION TO SLURM CONFIGURATOR"
+                )
+            elif not slurm_config_available:
+                self.unit.status = BlockedStatus(
+                    "WAITING ON SLURM CONFIG"
+                )
+            else:
+                self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
             return False
-        return True
+        else:
+            return True
 
     def _assemble_slurmd_info(self):
         """Get the slurmd inventory and assemble the partition."""
@@ -99,18 +113,9 @@ class SlurmdCharm(CharmBase):
             'partition_config': partition_config,
         }
 
-    def set_slurm_configurator_available(self, slurm_configurator_available):
-        """Set slurm_configurator_available."""
-        self._stored.slurm_configurator_available = \
-            slurm_configurator_available
-
     def set_munge_key(self, munge_key):
         """Set the munge key."""
         self._stored.munge_key = munge_key
-
-    def set_slurm_config(self, slurm_config):
-        """Set the slurm config."""
-        self._stored.slurm_conifg = slurm_config
 
     def get_hostname(self):
         """Return the hostname."""

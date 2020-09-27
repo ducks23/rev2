@@ -1,6 +1,6 @@
 #!/usr/bin/python3
-"""SlurmdRequires."""
-# import logging
+"""Slurmctld."""
+import json
 
 from ops.framework import (
     EventBase,
@@ -58,12 +58,6 @@ class Slurmctld(Object):
     def _relation(self):
         return self.framework.model.get_relation(self._relation_name)
 
-    def get_slurm_config(self):
-        """Return slurm_config."""
-        app = self._relation.app
-        app_data = self._relation.data[app]
-        return app_data['slurm_config']
-
     def set_slurmctld_info_on_app_relation_data(self, slurmctld_info):
         """Set the slurmctld_info to the app data on the relation.
 
@@ -72,3 +66,15 @@ class Slurmctld(Object):
         event so they can acquire and render the updated slurmctld_info.
         """
         self._relation.data[self.model.app]['slurmctld_info'] = slurmctld_info
+
+    def get_slurm_config_from_relation(self):
+        """Return slurm_config."""
+        app = self._relation.app
+        app_data = self._relation.data[app]
+        return json.loads(app_data['slurm_config'])
+
+    def is_slurm_config_available(self):
+        """Return True/False."""
+        app = self._relation.app
+        app_data = self._relation.data[app]
+        return app_data['slurm_configurator_available'] == "true"

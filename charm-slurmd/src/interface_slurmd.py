@@ -35,11 +35,6 @@ class Slurmd(Object):
         self._relation_name = relation_name
 
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_created,
-            self._on_relation_created
-        )
-
-        self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
@@ -48,9 +43,6 @@ class Slurmd(Object):
             self._charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
-
-    def _on_relation_created(self, event):
-        self._charm.set_slurm_configurator_available(True)
 
     def _on_relation_changed(self, event):
         event_app_data = event.relation.data.get(event.app)
@@ -64,18 +56,14 @@ class Slurmd(Object):
             event.defer()
             return
         self._charm.set_munge_key(munge_key)
-
-        # Get the slurm_config from slurm-configurator
-        slurm_config = event_app_data.get('slurm_config')
-        if not slurm_config:
-            event.defer()
-            return
-
-        self._charm.set_slurm_config(slurm_config)
         self.on.slurm_config_available.emit()
 
     def _on_relation_broken(self, event):
         self._charm.set_slurm_configurator_available(False)
+
+    @property
+    def _relation(self):
+        return self.framework.model.get_relation(self._relation_name)
 
     def set_slurmd_info_on_app_relation_data(self, slurmd_info):
         """Set the slurmd_info on the app relation data.
@@ -89,3 +77,15 @@ class Slurmd(Object):
             relation.data[self.model.app]['slurmd_info'] = json.dumps(
                 slurmd_info
             )
+
+    def get_slurm_config_from_relation(self):
+        """Return slurm_config."""
+        app = self._relation.app
+        app_data = self._relation.data[app]
+        return json.loads(app_data['slurm_config'])
+
+    def is_slurm_config_available(self):
+        """Return True/False."""
+        app = self._relation.app
+        app_data = self._relation.data[app]
+        return app_data['slurm_configurator_available'] == "true"

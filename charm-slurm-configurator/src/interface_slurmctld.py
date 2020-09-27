@@ -113,3 +113,5 @@ class Slurmctld(Object):
             relation.data[self.model.app]['slurm_config'] = json.dumps(
                 slurm_config
             )
+            relation.data[self.model.app]['slurm_configurator_available'] = \
+                "true"
