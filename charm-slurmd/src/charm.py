@@ -90,13 +90,14 @@ class SlurmdCharm(CharmBase):
 
         partition_name = self.model.config.get('partition-name')
         partition_config = self.model.config.get('partition-config')
+        partition_state = self.model.config.get('partition-state')
 
-        partition = {'name': partition_name, 'state': "UP"}
-
-        if partition_config:
-            partition['config'] = partition_config
-
-        return {'partition': partition, 'inventory': slurmd_info}
+        return {
+            'inventory': slurmd_info,
+            'partition_name': partition_name,
+            'partition_state': partition_state,
+            'partition_config': partition_config,
+        }
 
     def set_slurm_configurator_available(self, slurm_configurator_available):
         """Set slurm_configurator_available."""
