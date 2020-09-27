@@ -159,7 +159,7 @@ class SlurmctldPeer(Object):
 
     def get_slurmctld_info(self):
         """Return slurmctld info."""
-        return self._relation[self.model.app]['slurmctld_info']
+        return json.loads(self._relation[self.model.app]['slurmctld_info'])
 
 
 def _related_units(relid):

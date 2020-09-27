@@ -95,8 +95,7 @@ class Slurmctld(Object):
     def get_slurmctld_info(self):
         """Return the slurmctld_info."""
         app = self._relation.app
-        slurmctld_info = self._relation.data[app]['slurmctld_info']
-        return json.loads(slurmctld_info)
+        return json.loads(self._relation.data[app]['slurmctld_info'])
 
     def set_slurm_config_on_app_relation_data(
         self,

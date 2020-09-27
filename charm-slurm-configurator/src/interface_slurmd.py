@@ -53,6 +53,10 @@ class Slurmd(Object):
         self._relation_name = relation_name
 
         self.framework.observe(
+            self._charm.on[self._relation_name].relation_created,
+            self._on_relation_created
+        )
+        self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
@@ -64,6 +68,17 @@ class Slurmd(Object):
             self._charm.on[self._relation_name].relation_departed,
             self._on_relation_departed
         )
+
+    def _on_relation_created(self, event):
+        # Check that slurm has been installed so that we know the munge key is
+        # available. Defer if slurm has not been installed yet.
+        if not self._charm.is_slurm_installed():
+            event.defer()
+            return
+        # Get the munge_key from the slurm_ops_manager and set it to the app
+        # data on the relation to be retrieved on the other side by slurmdbd.
+        munge_key = self._charm.get_munge_key()
+        event.relation.data[self.model.app]['munge_key'] = munge_key
 
     def _on_relation_changed(self, event):
         """Check for slurmdbd and slurmd, write config, set relation data."""
@@ -82,11 +97,8 @@ class Slurmd(Object):
         relations = self.framework.model.relations['slurmd']
 
         for relation in relations:
-            app = relation.app
-            app_data = relation.data[app]
-            nodes_info.append(
-                json.loads(app_data['slurmd_info'])
-            )
+            app_data = relation.data[relation.app]
+            nodes_info.append(json.loads(app_data['slurmd_info']))
         return nodes_info
 
     def set_slurm_config_on_app_relation_data(
