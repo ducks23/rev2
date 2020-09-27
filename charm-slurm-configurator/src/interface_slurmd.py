@@ -75,7 +75,10 @@ class Slurmd(Object):
         # Get the munge_key from the slurm_ops_manager and set it to the app
         # data on the relation to be retrieved on the other side by slurmdbd.
         munge_key = self._charm.get_munge_key()
-        event.relation.data[self.model.app]['munge_key'] = munge_key
+        app_relation_data = event.relation.data[self.model.app]
+
+        app_relation_data['munge_key'] = munge_key
+        app_relation_data['slurm_configurator_available'] = "false"
 
     def _on_relation_changed(self, event):
         """Check for slurmdbd and slurmd, write config, set relation data."""
@@ -111,8 +114,6 @@ class Slurmd(Object):
         """
         relations = self._charm.framework.model.relations[relation]
         for relation in relations:
-            relation.data[self.model.app]['slurm_config'] = json.dumps(
-                slurm_config
-            )
-            relation.data[self.model.app]['slurm_configurator_available'] = \
-                "true"
+            app_relation_data = relation.data[self.model.app]
+            app_relation_data['slurm_config'] = json.dumps(slurm_config)
+            app_relation_data['slurm_configurator_available'] = "true"
