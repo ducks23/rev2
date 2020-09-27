@@ -2,7 +2,6 @@
 """SlurmdPeer."""
 import json
 import logging
-import subprocess
 
 
 from ops.framework import (
@@ -11,7 +10,7 @@ from ops.framework import (
     Object,
     ObjectEvents,
 )
-from utils import cpu_info, free_m, lspci_nvidia
+from utils import get_active_units, get_inventory
 
 
 logger = logging.getLogger()
@@ -64,24 +63,30 @@ class SlurmdPeer(Object):
         )
 
     def _on_relation_created(self, event):
-        """Set hostname and inventory on our unit data."""
+        """Set our inventory on unit data."""
         node_name = self._charm.get_hostname()
         node_addr = event.relation.data[self.model.unit]['ingress-address']
 
         event.relation.data[self.model.unit]['inventory'] = json.loads(
-            _get_inventory(
-                node_name,
-                node_addr
-            )
+            get_inventory(node_name, node_addr)
         )
         if self.framework.model.unit.is_leader():
             self.on.slurmd_peer_available.emit()
 
     def _on_relation_joined(self, event):
-        logger.debug("############## LOGGING RELATION JOINED ################")
+        """Get the munge_key out of the app rel data and set it in our data."""
+        app_relation_data = event.relation.data.get(event.app)
+        if not app_relation_data:
+            event.defer()
+            return
+
+        munge_key = app_relation_data.get('munge_key')
+        if not munge_key:
+            event.defer()
+            return
+        self._charm.set_munge_key(munge_key)
 
     def _on_relation_changed(self, event):
-        logger.debug("############# LOGGING RELATION CHANGED ################")
         if self.framework.model.unit.is_leader():
             self.on.slurmd_peer_available.emit()
 
@@ -95,9 +100,9 @@ class SlurmdPeer(Object):
         """Return slurmd inventory."""
         relation = self.framework.model.get_relation(self._relation_name)
 
-        # Comprise slurmd_info with the inventory and hostname of the active
-        # slurmd_peers and our own data.
-        slurmd_peers = _get_active_peers()
+        # Comprise slurmd_info with the inventory of the active slurmd_peers
+        # plus our own inventory.
+        slurmd_peers = get_active_units(self._relation_name)
         peers = relation.units
 
         slurmd_info = [
@@ -105,52 +110,9 @@ class SlurmdPeer(Object):
             for peer in peers if peer.name in slurmd_peers
         ]
 
-        # Add our hostname and inventory to the slurmd_info
+        # Add our own inventory to the slurmd_info
         slurmd_info.append(
             json.loads(relation.data[self.model.unit]['inventory'])
         )
 
         return slurmd_info
-
-
-def _related_units(relid):
-    """List of related units."""
-    units_cmd_line = ['relation-list', '--format=json', '-r', relid]
-    return json.loads(
-        subprocess.check_output(units_cmd_line).decode('UTF-8')) or []
-
-
-def _relation_ids(reltype):
-    """List of relation_ids."""
-    relid_cmd_line = ['relation-ids', '--format=json', reltype]
-    return json.loads(
-        subprocess.check_output(relid_cmd_line).decode('UTF-8')) or []
-
-
-def _get_active_peers():
-    """Return the active_units."""
-    active_units = []
-    for rel_id in _relation_ids('slurmd-peer'):
-        for unit in _related_units(rel_id):
-            active_units.append(unit)
-    return active_units
-
-
-def _get_inventory(node_name, node_addr):
-    """Assemble and return the node info."""
-    mem = free_m()
-    processor_info = cpu_info()
-    gpus = lspci_nvidia()
-
-    inventory = {
-        'node_name': node_name,
-        'node_addr': node_addr,
-        'state': "UNKNOWN",
-        'real_memory': mem,
-        **processor_info,
-    }
-
-    if (gpus > 0):
-        inventory['gres'] = gpus
-
-    return inventory
