@@ -30,7 +30,7 @@ class PeerRelationEvents(ObjectEvents):
     slurmd_peer_available = EventSource(SlurmdPeerAvailableEvent)
 
 
-class TestingPeerRelation(Object):
+class SlurmdPeer(Object):
     """TestingPeerRelation."""
 
     on = PeerRelationEvents()
@@ -72,7 +72,7 @@ class TestingPeerRelation(Object):
         node_addr = event.relation.data[self.model.unit]['ingress-address']
 
         event.relation.data[self.model.unit]['inventory'] = json.loads(
-            get_inventory(
+            _get_inventory(
                 node_name,
                 node_addr
             )
@@ -183,7 +183,7 @@ def _get_gpus():
     return gpu
 
 
-def get_inventory(node_name, node_addr):
+def _get_inventory(node_name, node_addr):
     """Assemble and return the node info."""
     mem = _get_real_mem()
     cpu_info = _get_cpu_info()
@@ -201,20 +201,3 @@ def get_inventory(node_name, node_addr):
         node_info['gres'] = gpus
 
     return node_info
-
-
-def get_partition(partition):
-    """Return the partition string."""
-    nodes = ",".join(partition["hosts"])
-    partition_name = partition["name"]
-
-    partition_str = (
-        f"PartitionName={partition_name} "
-        f"Nodes={nodes} "
-        "State=UP "
-    )
-
-    if partition.get('config'):
-        partition_str += partition['config']
-
-    return partition_str
