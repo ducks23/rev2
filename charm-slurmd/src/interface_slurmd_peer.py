@@ -14,6 +14,7 @@ from ops.framework import (
     Object,
     ObjectEvents,
 )
+from utils import lscpu
 
 
 logger = logging.getLogger()
@@ -70,10 +71,11 @@ class TestingPeerRelation(Object):
         node_name = self._charm.get_hostname()
         node_addr = event.relation.data[self.model.unit]['ingress-address']
 
-        event.relation.data[self.model.unit]['hostname'] = node_name
-        event.relation.data[self.model.unit]['inventory'] = get_inventory(
-            node_name,
-            node_addr
+        event.relation.data[self.model.unit]['inventory'] = json.loads(
+            get_inventory(
+                node_name,
+                node_addr
+            )
         )
         if self.framework.model.unit.is_leader():
             self.on.slurmd_peer_available.emit()
@@ -102,20 +104,15 @@ class TestingPeerRelation(Object):
         peers = relation.units
 
         slurmd_info = [
-            {
-                'inventory': relation.data[peer]['inventory'],
-                'hostname': relation.data[peer]['hostname'],
-            }
+            json.loads(relation.data[peer]['inventory'])
             for peer in peers if peer.name in slurmd_peers
         ]
 
         # Add our hostname and inventory to the slurmd_info
         slurmd_info.append(
-            {
-                'inventory': relation.data[self.model.unit]['inventory'],
-                'hostname': relation.data[self.model.unit]['hostname'],
-            }
+            json.loads(relation.data[self.model.unit]['inventory'])
         )
+
         return slurmd_info
 
 
@@ -159,37 +156,14 @@ def _get_real_mem():
 
 def _get_cpu_info():
     """Return the socket info."""
-    try:
-        lscpu = \
-            subprocess.check_output(
-                "lscpu",
-                shell=True
-            ).decode().replace("(s)", "")
-    except subprocess.CalledProcessError as e:
-        print(e)
-        sys.exit(-1)
+    lscpu = lscpu()
 
-    cpu_info = {
-        'CPU:': '',
-        'Thread per core:': '',
-        'Core per socket:': '',
-        'Socket:': '',
+    return {
+        'cpus': lscpu['cpus'],
+        'threads_per_core': lscpu['threads_per_core'],
+        'cores_per_socket': lscpu['cores_per_socket'],
+        'sockets_per_board': lscpu['sockets'],
     }
-
-    try:
-        for key in cpu_info:
-            cpu_info[key] = re.search(f"{key}.*", lscpu)\
-                              .group()\
-                              .replace(f"{key}", "")\
-                              .replace(" ", "")
-    except Exception as error:
-        print(f"Unable to set Node configuration: {error}")
-        sys.exit(-1)
-
-    return f"CPUs={cpu_info['CPU:']} "\
-           f"ThreadsPerCore={cpu_info['Thread per core:']} "\
-           f"CoresPerSocket={cpu_info['Core per socket:']} "\
-           f"SocketsPerBoard={cpu_info['Socket:']}"
 
 
 # Get the number of GPUs and check that they exist at /dev/nvidiaX
@@ -215,13 +189,16 @@ def get_inventory(node_name, node_addr):
     cpu_info = _get_cpu_info()
     gpus = _get_gpus()
 
-    node_info = f"NodeName={node_name} "\
-                f"NodeAddr={node_addr} "\
-                f"State=UNKNOWN "\
-                f"{cpu_info} "\
-                f"RealMemory={mem}"
+    node_info = {
+        'node_name': node_name,
+        'node_addr': node_addr,
+        'state': "UNKNOWN",
+        'real_memory': mem,
+        **cpu_info,
+    }
+
     if (gpus > 0):
-        node_info = f"{node_info} Gres={gpus}"
+        node_info['gres'] = gpus
 
     return node_info
 
