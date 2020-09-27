@@ -190,8 +190,14 @@ class SlurmConfiguratorCharm(CharmBase):
         slurmdbd_available = self._stored.slurmdbd_available
         slurm_installed = self._stored.slurm_installed
 
-        if not (slurmdbd_available and slurmd_available and
-                slurmctld_available and slurm_installed):
+        deps = [
+            slurmdbd_available,
+            slurmd_available,
+            slurmctld_available,
+            slurm_installed,
+        ]
+
+        if not all(deps):
             if not slurmctld_available:
                 self.unit.status = BlockedStatus("NEED RELATION TO SLURMCTLD")
             if not slurmd_available:

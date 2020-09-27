@@ -60,14 +60,19 @@ class Nhc(Object):
         nhc_health_check_node_state = event_app_data.get(
             'health_check_node_state'
         )
-        if not (nhc_bin_path and nhc_health_check_interval and
-                nhc_health_check_node_state):
+
+        deps = [
+            nhc_bin_path,
+            nhc_health_check_interval,
+            nhc_health_check_node_state
+        ]
+        if not all(deps):
             event.defer()
             return
 
         self._charm.set_nhc_info({
-           'nhc_bin': nhc_bin_path,
-           'health_check_interval': nhc_health_check_interval,
-           'health_check_node_state': nhc_health_check_node_state,
+            'nhc_bin': nhc_bin_path,
+            'health_check_interval': nhc_health_check_interval,
+            'health_check_node_state': nhc_health_check_node_state,
         })
         self.on.nhc_bin_available.emit()

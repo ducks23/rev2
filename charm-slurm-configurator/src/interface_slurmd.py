@@ -1,10 +1,7 @@
 #!/usr/bin/python3
 """Slurmd."""
-import collections
 import json
 import logging
-import socket
-import subprocess
 
 
 from ops.framework import (

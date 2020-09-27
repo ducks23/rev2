@@ -2,10 +2,7 @@
 """SlurmdPeer."""
 import json
 import logging
-import os
-import re
 import subprocess
-import sys
 
 
 from ops.framework import (
@@ -14,7 +11,7 @@ from ops.framework import (
     Object,
     ObjectEvents,
 )
-from utils import lscpu
+from utils import cpu_info, free_m, lspci_nvidia
 
 
 logger = logging.getLogger()
@@ -139,65 +136,21 @@ def _get_active_peers():
     return active_units
 
 
-def _get_real_mem():
-    """Return the real memory."""
-    try:
-        real_mem = subprocess.check_output(
-            "free -m | grep -oP '\\d+' | head -n 1",
-            shell=True
-        )
-    except subprocess.CalledProcessError as e:
-        # logger.debug(e)
-        print(e)
-        sys.exit(-1)
-
-    return real_mem.decode().strip()
-
-
-def _get_cpu_info():
-    """Return the socket info."""
-    lscpu = lscpu()
-
-    return {
-        'cpus': lscpu['cpus'],
-        'threads_per_core': lscpu['threads_per_core'],
-        'cores_per_socket': lscpu['cores_per_socket'],
-        'sockets_per_board': lscpu['sockets'],
-    }
-
-
-# Get the number of GPUs and check that they exist at /dev/nvidiaX
-def _get_gpus():
-    gpu = int(
-        subprocess.check_output(
-            "lspci | grep -i nvidia | awk '{print $1}' "
-            "| cut -d : -f 1 | sort -u | wc -l",
-            shell=True
-        )
-    )
-
-    for i in range(gpu):
-        gpu_path = "/dev/nvidia" + str(i)
-        if not os.path.exists(gpu_path):
-            return 0
-    return gpu
-
-
 def _get_inventory(node_name, node_addr):
     """Assemble and return the node info."""
-    mem = _get_real_mem()
-    cpu_info = _get_cpu_info()
-    gpus = _get_gpus()
+    mem = free_m()
+    processor_info = cpu_info()
+    gpus = lspci_nvidia()
 
-    node_info = {
+    inventory = {
         'node_name': node_name,
         'node_addr': node_addr,
         'state': "UNKNOWN",
         'real_memory': mem,
-        **cpu_info,
+        **processor_info,
     }
 
     if (gpus > 0):
-        node_info['gres'] = gpus
+        inventory['gres'] = gpus
 
-    return node_info
+    return inventory

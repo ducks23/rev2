@@ -3,7 +3,7 @@
 import logging
 
 from interface_slurmd import Slurmd
-from interface_slurmd_peer import get_partition, SlurmdPeer
+from interface_slurmd_peer import SlurmdPeer
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
