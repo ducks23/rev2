@@ -57,14 +57,6 @@ class Slurmd(Object):
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
-        self.framework.observe(
-            self._charm.on[self._relation_name].relation_broken,
-            self._on_relation_broken
-        )
-        self.framework.observe(
-            self._charm.on[self._relation_name].relation_departed,
-            self._on_relation_departed
-        )
 
     def _on_relation_created(self, event):
         # Check that slurm has been installed so that we know the munge key is

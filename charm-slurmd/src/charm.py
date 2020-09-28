@@ -100,7 +100,7 @@ class SlurmdCharm(CharmBase):
 
     def _assemble_slurmd_info(self):
         """Get the slurmd inventory and assemble the partition."""
-        slurmd_info = self._slurmd_peers.get_slurmd_info()
+        slurmd_info = self._slurmd_peer.get_slurmd_info()
 
         partition_name = self.model.config.get('partition-name')
         partition_config = self.model.config.get('partition-config')

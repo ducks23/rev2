@@ -79,6 +79,10 @@ class Slurmd(Object):
 
     def is_slurm_config_available(self):
         """Return True/False if slurm_configurator_available."""
-        app = self._relation.app
-        app_data = self._relation.data[app]
-        return app_data['slurm_configurator_available'] == "true"
+        relation = self._relation
+        if relation:
+            app = relation.app
+            if app:
+                app_data = self._relation.data[app]
+                return app_data['slurm_configurator_available'] == "true"
+        return False

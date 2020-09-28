@@ -67,7 +67,7 @@ class SlurmdPeer(Object):
         node_name = self._charm.get_hostname()
         node_addr = event.relation.data[self.model.unit]['ingress-address']
 
-        event.relation.data[self.model.unit]['inventory'] = json.loads(
+        event.relation.data[self.model.unit]['inventory'] = json.dumps(
             get_inventory(node_name, node_addr)
         )
         if self.framework.model.unit.is_leader():
