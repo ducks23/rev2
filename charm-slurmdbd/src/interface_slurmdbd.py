@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 """Slurmdbd."""
+import json
 import logging
 
 
@@ -43,16 +44,11 @@ class Slurmdbd(Object):
     _stored = StoredState()
 
     def __init__(self, charm, relation_name):
-        """Set the provides initial data."""
+        """Observe relation lifecycle events."""
         super().__init__(charm, relation_name)
 
         self._charm = charm
         self._relation_name = relation_name
-
-        self.framework.observe(
-            self._charm.on[self._relation_name].relation_created,
-            self._on_relation_created
-        )
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
@@ -63,10 +59,6 @@ class Slurmdbd(Object):
             self._charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
-
-    def _on_relation_created(self, event):
-        unit_relation_data = event.relation.data[self.model.unit]
-        unit_relation_data['slurmdbd_available'] = "false"
 
     def _on_relation_changed(self, event):
         app_relation_data = event.relation.data.get(event.app)
@@ -87,13 +79,17 @@ class Slurmdbd(Object):
         self.on.slurmdbd_available.emit()
 
     def _on_relation_broken(self, event):
-        self.set_slurmdbd_available_on_unit_relation_data(
-            available="false"
-        )
+        self.set_slurmdbd_info_on_app_relation_data("")
+        self.on.slurmdbd_unavailable.emit()
 
-    def set_slurmdbd_available_on_unit_relation_data(self, available="true"):
-        """Set slurmdbd_available."""
+    def set_slurmdbd_info_on_app_relation_data(self, slurmdbd_info):
+        """Set slurmdbd_info."""
         relations = self.framework.model.relations['slurmdbd']
         # Iterate over each of the relations setting the relation data.
         for relation in relations:
-            relation.data[self.model.unit]['slurmdbd_available'] = available
+            if slurmdbd_info != "":
+                relation.data[self.model.app]['slurmdbd_info'] = json.dumps(
+                    slurmdbd_info
+                )
+            else:
+                relation.data[self.model.app]['slurmdbd_info'] = ""

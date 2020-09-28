@@ -53,7 +53,7 @@ class SlurmctldPeer(Object):
         unit_relation_data = relation.data[self.model.unit]
 
         unit_relation_data['hostname'] = self._charm.get_hostname()
-        unit_relation_data['port'] = str(self._charm.get_port())
+        unit_relation_data['port'] = self._charm.get_port()
 
         # Call _on_relation_changed to assemble the slurmctld_info and
         # emit the slurmctld_peer_available event.
@@ -157,9 +157,20 @@ class SlurmctldPeer(Object):
             app_relation_data['slurmctld_info'] = json.dumps(ctxt)
             self.on.slurmctld_peer_available.emit()
 
+    @property
+    def _relation(self):
+        return self.framework.model.get_relation(self._relation_name)
+
     def get_slurmctld_info(self):
         """Return slurmctld info."""
-        return json.loads(self._relation[self.model.app]['slurmctld_info'])
+        relation = self._relation
+        if relation:
+            app = relation.app
+            if app:
+                slurmctld_info = relation.data[app].get('slurmctld_info')
+                if slurmctld_info:
+                    return json.loads(slurmctld_info)
+        return None
 
 
 def _related_units(relid):

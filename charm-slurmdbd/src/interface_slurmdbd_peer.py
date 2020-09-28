@@ -60,7 +60,7 @@ class SlurmdbdPeer(Object):
         self._on_relation_changed(event)
 
     def _on_relation_changed(self, event):
-        """Use the leader and app relation data to schedule active vs backup."""
+        """Use the leader and app relation data to schedule active/backup."""
         # We only modify the slurmdbd queue if we are the leaader.
         # As such, we dont need to preform any operations here
         # if we are not the leader.
@@ -81,7 +81,7 @@ class SlurmdbdPeer(Object):
             #
             # If we are the leader but are not the active slurmdbd,
             # then the previous slurmdbd leader must have died.
-            # Set our unit to the active_controller.
+            # Set our unit to the active_slurmdbd.
             if active_slurmdbd != self.model.unit.name:
                 app_relation_data['active_slurmdbd'] = self.model.unit.name
 
@@ -126,7 +126,7 @@ class SlurmdbdPeer(Object):
                     app_relation_data['standby_slurmdbd'] = json.dumps([])
 
             ctxt = {}
-            backup_controller = app_relation_data.get('backup_slurmdbd')
+            backup_slurmdbd = app_relation_data.get('backup_slurmdbd')
 
             # NOTE: We only care about the active and backup slurdbd.
             # Set the active slurmdbd info and check for and set the
@@ -157,9 +157,20 @@ class SlurmdbdPeer(Object):
             app_relation_data['slurmdbd_info'] = json.dumps(ctxt)
             self.on.slurmdbd_peer_available.emit()
 
+    @property
+    def _relation(self):
+        return self.framework.model.get_relation(self._relation_name)
+
     def get_slurmdbd_info(self):
         """Return slurmdbd info."""
-        return json.loads(self._relation[self.model.app]['slurmdbd_info'])
+        relation = self._relation
+        if relation:
+            app = relation.app
+            if app:
+                slurmdbd_info = relation.data[app].get('slurmdbd_info')
+                if slurmdbd_info:
+                    return json.loads(slurmdbd_info)
+        return None
 
 
 def _related_units(relid):

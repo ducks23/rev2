@@ -83,19 +83,29 @@ class Slurmd(Object):
             event.defer()
             return
 
-    def get_slurmd_node_info(self):
+    def on_relation_broken(self, event):
+        if self.framework.model.unit.is_leader():
+            event.relation.data[self.model.app]['munge_key'] = ""
+            self.set_slurm_config_on_app_relation_data("")
+        self._charm.set_slurmd_available(False)
+
+    def get_slurmd_info(self):
         """Return the node info for units of applications on the relation."""
         nodes_info = list()
         relations = self.framework.model.relations['slurmd']
 
         for relation in relations:
-            app_data = relation.data[relation.app]
-            nodes_info.append(json.loads(app_data['slurmd_info']))
+            app = relation.app
+            if app:
+                app_data = relation.data.get(app)
+                if app_data:
+                    slurmd_info = app_data.get('slurmd_info')
+                    if slurmd_info:
+                        nodes_info.append(json.loads(slurmd_info))
         return nodes_info
 
     def set_slurm_config_on_app_relation_data(
         self,
-        relation,
         slurm_config,
     ):
         """Set the slurm_conifg to the app data on the relation.
@@ -104,8 +114,7 @@ class Slurmd(Object):
         to observe the relation-changed event so they can acquire and
         render the updated slurm_config.
         """
-        relations = self._charm.framework.model.relations[relation]
+        relations = self._charm.framework.model.relations['slurmd']
         for relation in relations:
             app_relation_data = relation.data[self.model.app]
             app_relation_data['slurm_config'] = json.dumps(slurm_config)
-            app_relation_data['slurm_configurator_available'] = "true"

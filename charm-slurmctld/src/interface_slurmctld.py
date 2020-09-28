@@ -65,18 +65,32 @@ class Slurmctld(Object):
         slurm-configurator applications to observe the relation-changed
         event so they can acquire and render the updated slurmctld_info.
         """
-        self._relation.data[self.model.app]['slurmctld_info'] = json.dumps(
-            slurmctld_info
-        )
+        relation = self._relation
+        if relation:
+            relation.data[self.model.app]['slurmctld_info'] = json.dumps(
+                slurmctld_info
+            )
 
     def get_slurm_config_from_relation(self):
         """Return slurm_config."""
-        app = self._relation.app
-        app_data = self._relation.data[app]
-        return json.loads(app_data['slurm_config'])
+        relation = self._relation
+        if relation:
+            app = relation.app
+            if app:
+                app_data = relation.data.get(app)
+                if app_data:
+                    if app_data.get('slurm_config'):
+                        return json.loads(app_data['slurm_config'])
+        return None
 
     def is_slurm_config_available(self):
         """Return True/False."""
-        app = self._relation.app
-        app_data = self._relation.data[app]
-        return app_data['slurm_configurator_available'] == "true"
+        relation = self._relation
+        if relation:
+            app = relation.app
+            if app:
+                app_data = relation.data.get(app)
+                if app_data:
+                    if app_data.get('slurm_config'):
+                        return True
+        return False

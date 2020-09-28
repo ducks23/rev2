@@ -89,6 +89,10 @@ class Slurmctld(Object):
         self.on.slurmctld_unavailable.emit()
 
     def _on_relation_broken(self, event):
+        if self.framework.model.unit.is_leader():
+            event.relation.data[self.model.app]['munge_key'] = ""
+            self.set_slurm_config_on_app_relation_data("")
+        self._charm.set_slurmctld_available(False)
         self.on.slurmctld_unavailable.emit()
 
     @property
@@ -97,12 +101,18 @@ class Slurmctld(Object):
 
     def get_slurmctld_info(self):
         """Return the slurmctld_info."""
-        app = self._relation.app
-        return json.loads(self._relation.data[app]['slurmctld_info'])
+        relation = self._relation
+        if relation:
+            app = relation.app
+            if app:
+                app_data = relation.data.get(app)
+                if app_data:
+                    slurmctld_info = app_data.get(app)
+                    return json.loads(slurmctld_info) if slurmctld_info else None
+        return None
 
     def set_slurm_config_on_app_relation_data(
         self,
-        relation,
         slurm_config,
     ):
         """Set the slurm_conifg to the app data on the relation.
@@ -111,8 +121,10 @@ class Slurmctld(Object):
         to observe the relation-changed event so they can acquire and
         render the updated slurm_config.
         """
-        relations = self._charm.framework.model.relations[relation]
+        relations = self._charm.framework.model.relations['slurmctld']
         for relation in relations:
             app_relation_data = relation.data[self.model.app]
-            app_relation_data['slurm_config'] = json.dumps(slurm_config)
-            app_relation_data['slurm_configurator_available'] = "true"
+            if slurm_config != "":
+                app_relation_data['slurm_config'] = json.dumps(slurm_config)
+            else:
+                app_relation_data['slurm_config'] = slurm_config

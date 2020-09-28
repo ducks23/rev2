@@ -71,11 +71,18 @@ class Slurmd(Object):
                 slurmd_info
             )
 
-    def get_slurm_config_from_relation(self):
+    def get_slurm_config(self):
         """Return slurm_config."""
-        app = self._relation.app
-        app_data = self._relation.data[app]
-        return json.loads(app_data['slurm_config'])
+        relation = self._relation
+        if relation:
+            app = relation.app
+            if app:
+                app_data = self._relation.data.get(app)
+                if app_data:
+                    slurm_config = app_data.get('slurm_config')
+                    if slurm_config:
+                        return json.loads(slurm_config)
+        return None
 
     def is_slurm_config_available(self):
         """Return True/False if slurm_configurator_available."""
@@ -84,5 +91,8 @@ class Slurmd(Object):
             app = relation.app
             if app:
                 app_data = self._relation.data[app]
-                return app_data['slurm_configurator_available'] == "true"
+                if app_data:
+                    slurm_config = app_data.get('slurm_config')
+                    if slurm_config:
+                        return True
         return False

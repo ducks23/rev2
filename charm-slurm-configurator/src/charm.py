@@ -123,18 +123,15 @@ class SlurmConfiguratorCharm(CharmBase):
             return
 
         self._slurmd.set_slurm_config_on_app_relation_data(
-            'slurmd',
             slurm_config,
         )
 
         self._slurmctld.set_slurm_config_on_app_relation_data(
-            'slurmctld',
             slurm_config,
         )
 
         if self._stored.slurmrestd_available:
             self._slurmrestd.set_slurm_config_on_app_relation_data(
-                'slurmrestd',
                 slurm_config,
             )
 
@@ -149,7 +146,6 @@ class SlurmConfiguratorCharm(CharmBase):
             return
 
         self._slurmrestd.set_slurm_config_on_app_relation_data(
-            'slurmrestd',
             slurm_config,
         )
 
@@ -185,9 +181,12 @@ class SlurmConfiguratorCharm(CharmBase):
         }
 
     def _check_status(self):
-        slurmctld_available = self._stored.slurmctld_available
-        slurmd_available = self._stored.slurmd_available
-        slurmdbd_available = self._stored.slurmdbd_available
+        slurmd_available = self._slurmd.get_slurmd_info()
+        slurmdbd_available = self._slurmdbd.get_slurmdbd_info()
+        slurmctld_available = self._slurmctld.get_slurmctld_info()
+        #slurmctld_available = self._stored.slurmctld_available
+        #slurmd_available = self._stored.slurmd_available
+        #slurmdbd_available = self._stored.slurmdbd_available
         slurm_installed = self._stored.slurm_installed
 
         deps = [
