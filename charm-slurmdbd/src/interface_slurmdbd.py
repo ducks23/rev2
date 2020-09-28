@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-"""SlurmdbdProvidesRelation."""
+"""Slurmdbd."""
 import logging
 
 
@@ -15,30 +15,30 @@ from ops.framework import (
 logger = logging.getLogger()
 
 
-class SlurmctldAvailableEvent(EventBase):
-    """Emitted when slurmctld is available."""
+class SlurmdbdAvailableEvent(EventBase):
+    """Emitted when slurmdbd is available."""
 
 
-class SlurmctldUnAvailableEvent(EventBase):
-    """Emitted when slurmctld is unavailable."""
+class SlurmdbdUnAvailableEvent(EventBase):
+    """Emitted when slurmdbd is unavailable."""
 
 
 class MungeKeyAvailableEvent(EventBase):
     """Emitted when the munge key becomes available."""
 
 
-class SlurmdbdProvidesRelationEvents(ObjectEvents):
-    """SlurmdbdProvidesRelationEvents."""
+class SlurmdbdEvents(ObjectEvents):
+    """Slurmdbd relation events."""
 
     munge_key_available = EventSource(MungeKeyAvailableEvent)
-    slurmctld_available = EventSource(SlurmctldAvailableEvent)
-    slurmctld_unavailable = EventSource(SlurmctldUnAvailableEvent)
+    slurmdbd_available = EventSource(SlurmdbdAvailableEvent)
+    slurmdbd_unavailable = EventSource(SlurmdbdUnAvailableEvent)
 
 
-class SlurmdbdProvidesRelation(Object):
-    """SlurmdbdProvidesRelation."""
+class Slurmdbd(Object):
+    """Slurmdbd."""
 
-    on = SlurmdbdProvidesRelationEvents()
+    on = SlurmdbdEvents()
 
     _stored = StoredState()
 
@@ -48,8 +48,6 @@ class SlurmdbdProvidesRelation(Object):
 
         self._charm = charm
         self._relation_name = relation_name
-
-        self._stored.set_default(munge_key=str())
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_created,
@@ -69,8 +67,6 @@ class SlurmdbdProvidesRelation(Object):
     def _on_relation_created(self, event):
         unit_relation_data = event.relation.data[self.model.unit]
         unit_relation_data['slurmdbd_available'] = "false"
-        unit_relation_data['hostname'] = self._charm.get_hostname()
-        unit_relation_data['port'] = self._charm.get_port()
 
     def _on_relation_changed(self, event):
         app_relation_data = event.relation.data.get(event.app)
@@ -88,15 +84,16 @@ class SlurmdbdProvidesRelation(Object):
             return
 
         self._charm.set_munge_key(munge_key)
-        self.on.munge_key_available.emit()
+        self.on.slurmdbd_available.emit()
 
     def _on_relation_broken(self, event):
-        """Emit the slurmctld_unavailable event when the relation is broken."""
-        self.on.slurmctld_unavailable.emit()
+        self.set_slurmdbd_available_on_unit_relation_data(
+            available="false"
+        )
 
-    def set_slurmdbd_available_on_unit_relation_data(self):
+    def set_slurmdbd_available_on_unit_relation_data(self, available="true"):
         """Set slurmdbd_available."""
-        slurmdbd_relations = self.framework.model.relations['slurmdbd']
+        relations = self.framework.model.relations['slurmdbd']
         # Iterate over each of the relations setting the relation data.
-        for relation in slurmdbd_relations:
-            relation.data[self.model.unit]['slurmdbd_available'] = "true"
+        for relation in relations:
+            relation.data[self.model.unit]['slurmdbd_available'] = available
