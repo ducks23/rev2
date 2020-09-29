@@ -10,9 +10,6 @@ from ops.framework import (
 )
 
 
-# logger = logging.getLogger()
-
-
 class SlurmConfigAvailableEvent(EventBase):
     """Emitted when slurm config is available."""
 
@@ -57,6 +54,10 @@ class Slurmd(Object):
     @property
     def _relation(self):
         return self.framework.model.get_relation(self._relation_name)
+
+    @property
+    def is_joined(self):
+        return self._relation is not None
 
     def set_slurmd_info_on_app_relation_data(self, slurmd_info):
         """Set the slurmd_info on the app relation data.

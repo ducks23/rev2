@@ -66,7 +66,7 @@ class SlurmdCharm(CharmBase):
     def _on_send_slurmd_info(self, event):
         if self.framework.model.unit.is_leader():
             if self._slurmd.is_joined:
-                slurmd_info = self._slurmd_peer.get_slurmd_info()
+                slurmd_info = self._assemble_slurmd_info()
                 if slurmd_info:
                     self._slurmd.set_slurmd_info_on_app_relation_data(
                         slurmd_info
@@ -118,6 +118,8 @@ class SlurmdCharm(CharmBase):
     def _assemble_slurmd_info(self):
         """Get the slurmd inventory and assemble the partition."""
         slurmd_info = self._slurmd_peer.get_slurmd_info()
+        if not slurmd_info:
+            return None
 
         partition_name = self.model.config.get('partition-name')
         partition_config = self.model.config.get('partition-config')
