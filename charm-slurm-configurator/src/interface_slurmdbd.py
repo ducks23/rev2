@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Slurmdbd."""
+import json
 import logging
 
 
@@ -52,6 +53,11 @@ class Slurmdbd(Object):
         )
 
         self.framework.observe(
+            self._charm.on[self._relation_name].relation_departed,
+            self._on_relation_departed
+        )
+
+        self.framework.observe(
             self._charm.on[self._relation_name].relation_broken,
             self._on_relation_broken
         )
@@ -74,6 +80,12 @@ class Slurmdbd(Object):
             if slurmdbd_info:
                 self._charm.set_slurmdbd_available(True)
                 self.on.slurmdbd_available.emit()
+        else:
+            event.defer()
+            return
+
+    def _on_relation_departed(self, event):
+        self.on.slurmdbd_unavailable.emit()
 
     def _on_relation_broken(self, event):
         if self.framework.model.unit.is_leader():
@@ -93,6 +105,7 @@ class Slurmdbd(Object):
             if app:
                 app_data = relation.data.get(app)
                 if app_data:
-                    slurmdbd_info = app_data.get(app)
-                    return json.loads(slurmdbd_info) if slurmdbd_info else None
+                    slurmdbd_info = app_data.get('slurmdbd_info')
+                    if slurmdbd_info:
+                        return json.loads(slurmdbd_info)
         return None

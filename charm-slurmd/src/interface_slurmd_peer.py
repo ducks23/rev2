@@ -43,23 +43,8 @@ class SlurmdPeer(Object):
         )
 
         self.framework.observe(
-            self._charm.on[self._relation_name].relation_joined,
-            self._on_relation_joined
-        )
-
-        self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
-        )
-
-        self.framework.observe(
-            self._charm.on[self._relation_name].relation_departed,
-            self._on_relation_departed
-        )
-
-        self.framework.observe(
-            self._charm.on[self._relation_name].relation_broken,
-            self._on_relation_broken
         )
 
     def _on_relation_created(self, event):
@@ -73,28 +58,9 @@ class SlurmdPeer(Object):
         if self.framework.model.unit.is_leader():
             self.on.slurmd_peer_available.emit()
 
-    def _on_relation_joined(self, event):
-        """Get the munge_key out of the app rel data and set it in our data."""
-        app_relation_data = event.relation.data.get(event.app)
-        if not app_relation_data:
-            event.defer()
-            return
-
-        munge_key = app_relation_data.get('munge_key')
-        if not munge_key:
-            event.defer()
-            return
-        self._charm.set_munge_key(munge_key)
-
     def _on_relation_changed(self, event):
         if self.framework.model.unit.is_leader():
             self.on.slurmd_peer_available.emit()
-
-    def _on_relation_departed(self, event):
-        logger.debug("############ LOGGING RELATION DEPARTED ################")
-
-    def _on_relation_broken(self, event):
-        logger.debug("############ LOGGING RELATION BROKEN ##################")
 
     def get_slurmd_info(self):
         """Return slurmd inventory."""

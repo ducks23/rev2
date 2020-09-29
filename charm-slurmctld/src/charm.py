@@ -39,21 +39,14 @@ class SlurmctldCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
 
-            self.on.start:
-            self._on_check_status_and_write_config,
-
             self.on.config_changed:
             self._on_check_status_and_write_config,
 
-            self.on.upgrade_charm: self._on_upgrade,
-
-            self.on.leader_elected: self._on_leader_elected,
+            self._slurmctld.on.slurm_config_available:
+            self._on_check_status_and_write_config,
 
             self._slurmctld_peer.on.slurmctld_peer_available:
             self._on_slurmctld_peer_available,
-
-            self._slurmctld.on.slurm_config_available:
-            self._on_check_status_and_write_config,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -66,15 +59,17 @@ class SlurmctldCharm(CharmBase):
     def _on_upgrade(self, event):
         self._slurm_manager.upgrade()
 
-    def _on_leader_elected(self, event):
-        self._slurmctld_peer._on_relation_changed(event)
-
     def _on_slurmctld_peer_available(self, event):
-        if self.model.unit.is_leader():
-            slurmctld_info = self._slurmctld_peer.get_slurmctld_info()
-            self._slurmctld.set_slurmctld_info_on_app_relation_data(
-                slurmctld_info
-            )
+        if self.framework.model.unit.is_leader():
+            if self._slurmctld.is_joined:
+                slurmctld_info = self._slurmctld_peer.get_slurmctld_info()
+                if slurmctld_info:
+                    self._slurmctld.set_slurmctld_info_on_app_relation_data(
+                        slurmctld_info
+                    )
+                    return
+            event.defer()
+            return
 
     def _on_check_status_and_write_config(self, event):
         if not self._check_status():
@@ -82,20 +77,31 @@ class SlurmctldCharm(CharmBase):
             return
 
         slurm_config = self._slurmctld.get_slurm_config_from_relation()
-        self._slurm_manager.render_config_and_restart(slurm_config)
+        if not slurm_config:
+            event.defer()
+            return
+
+        munge_key = self._stored.munge_key
+        if not munge_key:
+            event.defer()
+            return
+
+        self._slurm_manager.render_config_and_restart(
+            {**slurm_config, 'munge_key': munge_key}
+        )
         self.unit.status = ActiveStatus("Slurmctld Available")
 
     def _check_status(self):
         munge_key = self._stored.munge_key
         slurm_installed = self._stored.slurm_installed
-        slurm_config_available = self._slurmctld.is_slurm_config_available()
+        slurm_config = self._slurmctld.get_slurm_config_from_relation()
 
-        if not (munge_key and slurm_installed and slurm_config_available):
+        if not (munge_key and slurm_installed and slurm_config):
             if not munge_key:
                 self.unit.status = BlockedStatus(
                     "NEED RELATION TO SLURM CONFIGURATOR"
                 )
-            elif not slurm_config_available:
+            elif not slurm_config:
                 self.unit.status = BlockedStatus(
                     "WAITING ON SLURM CONFIG"
                 )

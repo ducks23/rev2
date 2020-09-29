@@ -70,17 +70,16 @@ class Slurmctld(Object):
             return
         # Get the munge_key from the slurm_ops_manager and set it to the app
         # data on the relation to be retrieved on the other side by slurmdbd.
-        munge_key = self._charm.get_munge_key()
         app_relation_data = event.relation.data[self.model.app]
-
-        app_relation_data['munge_key'] = munge_key
-        app_relation_data['slurm_configurator_available'] = "false"
+        app_relation_data['munge_key'] = self._charm.get_munge_key()
 
     def _on_relation_changed(self, event):
-        if len(self.framework.model.relations['slurmctld']) > 0:
-            if not self._charm.is_slurmctld_available():
+        event_app_data = event.relation.data.get(event.app)
+        if event_app_data:
+            slurmctld_info = event_app_data.get('slurmctld_info')
+            if slurmctld_info:
                 self._charm.set_slurmctld_available(True)
-            self.on.slurmctld_available.emit()
+                self.on.slurmctld_available.emit()
         else:
             event.defer()
             return
@@ -107,8 +106,9 @@ class Slurmctld(Object):
             if app:
                 app_data = relation.data.get(app)
                 if app_data:
-                    slurmctld_info = app_data.get(app)
-                    return json.loads(slurmctld_info) if slurmctld_info else None
+                    slurmctld_info = app_data.get('slurmctld_info')
+                    if slurmctld_info:
+                        return json.loads(slurmctld_info)
         return None
 
     def set_slurm_config_on_app_relation_data(

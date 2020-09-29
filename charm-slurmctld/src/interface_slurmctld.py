@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Slurmctld."""
 import json
+import logging
 
 from ops.framework import (
     EventBase,
@@ -10,23 +11,30 @@ from ops.framework import (
 )
 
 
-# logger = logging.getLogger()
+logger = logging.getLogger()
 
 
 class SlurmConfigAvailableEvent(EventBase):
-    """Emitted when slurm config is available."""
+    """Emitted when slurm-config is available."""
 
 
-class SlurmctldProvidesEvents(ObjectEvents):
-    """SlurmctldProvidesEvents."""
+class SlurmConfiguratorUnAvailableEvent(EventBase):
+    """Emitted when a slurmctld unit joins the relation."""
 
-    slurm_config_available = EventSource(SlurmConfigAvailableEvent)
+
+class SlurmctldRelationEvents(ObjectEvents):
+    """Slurmctld relation events."""
+
+    slurm_config_available = \
+        EventSource(SlurmConfigAvailableEvent)
+    slurm_configurator_unavailable = \
+        EventSource(SlurmConfiguratorUnAvailableEvent)
 
 
 class Slurmctld(Object):
     """Slurmctld."""
 
-    on = SlurmctldProvidesEvents()
+    on = SlurmctldRelationEvents()
 
     def __init__(self, charm, relation_name):
         """Set initial data and observe interface events."""
@@ -35,9 +43,34 @@ class Slurmctld(Object):
         self._relation_name = relation_name
 
         self.framework.observe(
+            self._charm.on[self._relation_name].relation_created,
+            self._on_relation_created
+        )
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_joined,
+            self._on_relation_joined
+        )
+        self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_departed,
+            self._on_relation_departed
+        )
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_broken,
+            self._on_relation_broken
+        )
+
+    def _on_relation_created(self, event):
+        logger.debug("######## CREATED ########")
+        if event.relation.data.get(event.unit):
+            logger.debug(event.relation.data[event.unit].__dict__)
+
+    def _on_relation_joined(self, event):
+        logger.debug("######## JOINED ########")
+        logger.debug(event.relation.data[event.unit].__dict__)
 
     def _on_relation_changed(self, event):
         """Obtain and store the munge_key, emit slurm_config_available."""
@@ -45,31 +78,51 @@ class Slurmctld(Object):
         if not event_app_data:
             event.defer()
             return
-        # Get the munge_key from slurm-configurator
+
         munge_key = event_app_data.get('munge_key')
         if not munge_key:
             event.defer()
             return
-        # Store the munge_key in the main charm state
         self._charm.set_munge_key(munge_key)
+
+        slurm_config = event_app_data.get('slurm_config')
+        if not slurm_config:
+            event.defer()
+            return
         self.on.slurm_config_available.emit()
+
+    def _on_relation_departed(self, event):
+        logger.debug("######## DEPARTED ########")
+        logger.debug(event.relation.data[event.unit].__dict__)
+
+    def _on_relation_broken(self, event):
+        logger.debug("######## BROKEN ########")
+        if event.relation.data.get(event.unit):
+            logger.debug(event.relation.data[event.unit].__dict__)
+        self.set_slurmctld_info_on_app_relation_data("")
+        self._charm.set_slurm_configurator_available(False)
+        self.on.slurm_configurator_unavailable.emit()
 
     @property
     def _relation(self):
         return self.framework.model.get_relation(self._relation_name)
 
-    def set_slurmctld_info_on_app_relation_data(self, slurmctld_info):
-        """Set the slurmctld_info to the app data on the relation.
+    @property
+    def is_joined(self):
+        """Return True if self._relation is not None."""
+        return self._relation is not None
 
-        Setting data on the relation forces the units of related
-        slurm-configurator applications to observe the relation-changed
-        event so they can acquire and render the updated slurmctld_info.
-        """
-        relation = self._relation
-        if relation:
-            relation.data[self.model.app]['slurmctld_info'] = json.dumps(
-                slurmctld_info
-            )
+    def set_slurmctld_info_on_app_relation_data(self, slurmctld_info):
+        """Set slurmctld_info."""
+        relations = self.framework.model.relations['slurmctld']
+        # Iterate over each of the relations setting the relation data.
+        for relation in relations:
+            if slurmctld_info != "":
+                relation.data[self.model.app]['slurmctld_info'] = json.dumps(
+                    slurmctld_info
+                )
+            else:
+                relation.data[self.model.app]['slurmctld_info'] = ""
 
     def get_slurm_config_from_relation(self):
         """Return slurm_config."""

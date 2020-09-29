@@ -64,24 +64,41 @@ class SlurmdCharm(CharmBase):
         self._slurm_manager.upgrade()
 
     def _on_send_slurmd_info(self, event):
-        if self.model.unit.is_leader():
-            self._slurmd.set_slurmd_info_on_app_relation_data(
-                self._assemble_slurmd_info()
-            )
+        if self.framework.model.unit.is_leader():
+            if self._slurmd.is_joined:
+                slurmd_info = self._slurmd_peer.get_slurmd_info()
+                if slurmd_info:
+                    self._slurmd.set_slurmd_info_on_app_relation_data(
+                        slurmd_info
+                    )
+                    return
+            event.defer()
+            return
 
     def _on_check_status_and_write_config(self, event):
         if not self._check_status():
             event.defer()
             return
 
-        slurm_config = self._slurmctld.get_slurm_config_from_relation()
-        self._slurm_manager.render_config_and_restart(slurm_config)
-        self.unit.status = ActiveStatus("Slurmctld Available")
+        slurm_config = self._slurmd.get_slurm_config()
+        if not slurm_config:
+            event.defer()
+            return
+
+        munge_key = self._stored.munge_key
+        if not munge_key:
+            event.defer()
+            return
+
+        self._slurm_manager.render_config_and_restart(
+            {**slurm_config, 'munge_key': munge_key}
+        )
+        self.unit.status = ActiveStatus("Slurmd Available")
 
     def _check_status(self):
         munge_key = self._stored.munge_key
         slurm_installed = self._stored.slurm_installed
-        slurm_config_available = self._slurmd.is_slurm_config_available()
+        slurm_config_available = self._slurmd.get_slurm_config()
 
         if not (munge_key and slurm_installed and slurm_config_available):
             if not munge_key:

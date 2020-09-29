@@ -49,6 +49,7 @@ class SlurmctldPeer(Object):
 
     def _on_relation_created(self, event):
         """Set hostname and port on the unit data."""
+        logger.debug("########  RELATION CREATED #########")
         relation = self.framework.model.get_relation(self._relation_name)
         unit_relation_data = relation.data[self.model.unit]
 
@@ -61,6 +62,7 @@ class SlurmctldPeer(Object):
 
     def _on_relation_changed(self, event):
         """Use the leader and app relation data to schedule the controllers."""
+        logger.debug("########  RELATION CHANGED #########")
         # We only modify the slurmctld controller queue
         # if we are the leaader. As such, we dont need to preform
         # any operations if we are not the leader.
@@ -154,7 +156,9 @@ class SlurmctldPeer(Object):
                 ctxt['backup_controller_hostname'] = ""
                 ctxt['backup_controller_port'] = ""
 
+            logger.debug(ctxt)
             app_relation_data['slurmctld_info'] = json.dumps(ctxt)
+            logger.debug("EMMITTING SLURMCTLD_PEER_AVAILABLE")
             self.on.slurmctld_peer_available.emit()
 
     @property
@@ -167,9 +171,11 @@ class SlurmctldPeer(Object):
         if relation:
             app = relation.app
             if app:
-                slurmctld_info = relation.data[app].get('slurmctld_info')
-                if slurmctld_info:
-                    return json.loads(slurmctld_info)
+                app_data = relation.data.get(app)
+                if app_data:
+                    slurmctld_info = app_data.get('slurmctld_info')
+                    if slurmctld_info:
+                        return json.loads(slurmctld_info)
         return None
 
 

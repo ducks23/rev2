@@ -11,7 +11,6 @@ from ops.framework import (
     ObjectEvents,
     StoredState,
 )
-from ops.model import BlockedStatus
 
 
 logger = logging.getLogger()
@@ -57,6 +56,10 @@ class Slurmd(Object):
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_broken,
+            self._on_relation_broken
+        )
 
     def _on_relation_created(self, event):
         # Check that slurm has been installed so that we know the munge key is
@@ -66,24 +69,21 @@ class Slurmd(Object):
             return
         # Get the munge_key from the slurm_ops_manager and set it to the app
         # data on the relation to be retrieved on the other side by slurmdbd.
-        munge_key = self._charm.get_munge_key()
         app_relation_data = event.relation.data[self.model.app]
-
-        app_relation_data['munge_key'] = munge_key
-        app_relation_data['slurm_configurator_available'] = "false"
+        app_relation_data['munge_key'] = self._charm.get_munge_key()
 
     def _on_relation_changed(self, event):
-        """Check for slurmdbd and slurmd, write config, set relation data."""
-        if len(self.framework.model.relations['slurmd']) > 0:
-            if not self._charm.is_slurmd_available():
+        event_app_data = event.relation.data.get(event.app)
+        if event_app_data:
+            slurmd_info = event_app_data.get('slurmd_info')
+            if slurmd_info:
                 self._charm.set_slurmd_available(True)
-            self.on.slurmd_available.emit()
+                self.on.slurmd_available.emit()
         else:
-            self._charm.unit.status = BlockedStatus("Need > 0 units of slurmd")
             event.defer()
             return
 
-    def on_relation_broken(self, event):
+    def _on_relation_broken(self, event):
         if self.framework.model.unit.is_leader():
             event.relation.data[self.model.app]['munge_key'] = ""
             self.set_slurm_config_on_app_relation_data("")
@@ -91,7 +91,7 @@ class Slurmd(Object):
 
     def get_slurmd_info(self):
         """Return the node info for units of applications on the relation."""
-        nodes_info = list()
+        nodes_info = []
         relations = self.framework.model.relations['slurmd']
 
         for relation in relations:
