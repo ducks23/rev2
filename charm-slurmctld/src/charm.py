@@ -87,7 +87,11 @@ class SlurmctldCharm(CharmBase):
             return
 
         self._slurm_manager.render_config_and_restart(
-            {**slurm_config, 'munge_key': munge_key}
+            {
+                **self.model.config,
+                **slurm_config,
+                'munge_key': munge_key
+            }
         )
         self.unit.status = ActiveStatus("Slurmctld Available")
 
