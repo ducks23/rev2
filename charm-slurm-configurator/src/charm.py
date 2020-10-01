@@ -28,11 +28,12 @@ class SlurmConfiguratorCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
+            default_partition=str(),
+            munge_key=str(),
             slurm_installed=False,
             slurmctld_available=False,
             slurmdbd_available=False,
             slurmd_available=False,
-            munge_key=str(),
         )
 
         self._slurm_manager = SlurmManager(self, "slurmd")
@@ -123,8 +124,17 @@ class SlurmConfiguratorCharm(CharmBase):
             'elasticsearch_address': "",
         }
 
+        slurmd_info_tmp = copy.deepcopy(slurmd_info)
+
+        for partition in slurmd_info:
+            partition_tmp = copy.deepcopy(partition)
+            if partition['partition_name'] == self._stored.default_partition:
+                partition_tmp['partition_default'] = 'YES'
+                slurmd_info_tmp.remove(partition)
+                slurmd_info_tmp.append(partition_tmp)
+
         return {
-            'slurmd_info': slurmd_info,
+            'slurmd_info': slurmd_info_tmp,
             **slurmctld_info,
             **slurmdbd_info,
             **ctxt,
@@ -165,6 +175,10 @@ class SlurmConfiguratorCharm(CharmBase):
         """Return the slurmdbd_info from stored state."""
         return self._stored.munge_key
 
+    def get_default_partition(self, partition_name):
+        """get self._stored.default_partition."""
+        return self._stored.default_partition
+
     def set_slurmctld_available(self, slurmctld_available):
         """Set slurmctld_available."""
         self._stored.slurmctld_available = slurmctld_available
@@ -172,6 +186,10 @@ class SlurmConfiguratorCharm(CharmBase):
     def set_slurmdbd_available(self, slurmdbd_available):
         """Set slurmdbd_available."""
         self._stored.slurmdbd_available = slurmdbd_available
+
+    def set_default_partition(self, partition_name):
+        """Set self._stored.default_partition."""
+        self._stored.default_partition = partition_name
 
     def set_slurmd_available(self, slurmd_available):
         """Set slurmd_available."""

@@ -72,6 +72,15 @@ class Slurmd(Object):
         app_relation_data = event.relation.data[self.model.app]
         app_relation_data['munge_key'] = self._charm.get_munge_key()
 
+    def _on_relation_joined(self, event):
+        partition_name = event.relation.data[event.app].get('partition_name')
+        if not partition_name:
+            event.defer()
+            return
+
+        if not self._charm.get_default_partition():
+            self._charm.set_default_partition(partition_name)
+
     def _on_relation_changed(self, event):
         event_app_data = event.relation.data.get(event.app)
         if event_app_data:

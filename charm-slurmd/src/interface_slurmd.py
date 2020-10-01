@@ -32,9 +32,20 @@ class Slurmd(Object):
         self._relation_name = relation_name
 
         self.framework.observe(
+            self._charm.on[self._relation_name].relation_created,
+            self._on_relation_created
+        )
+
+        self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
             self._on_relation_changed
         )
+
+    def _on_relation_created(self, event):
+        """Set partition name to slurm-configurator."""
+        if self.framework.model.unit.is_leader():
+            event.relation.data[self.model.app]['partition_name'] = \
+                self._charm.get_set_return_partition_name()
 
     def _on_relation_changed(self, event):
         """Check for the munge_key in the relation data."""

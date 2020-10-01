@@ -4,6 +4,7 @@ import logging
 
 from interface_slurmd import Slurmd
 from interface_slurmd_peer import SlurmdPeer
+from utils import random_string
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -29,6 +30,7 @@ class SlurmdCharm(CharmBase):
         self._stored.set_default(
             munge_key=str(),
             user_node_state=str(),
+            partition_name=str(),
         )
 
         self._slurm_manager = SlurmManager(self, "slurmd")
@@ -58,6 +60,23 @@ class SlurmdCharm(CharmBase):
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
 
+    def _on_config_changed(self, event):
+        self.get_set_return_partition_name()
+        self._on_send_slurmd_info(event)
+
+    def get_set_return_partition_name(self):
+        """Set the partition name."""
+
+        # Determine if a partition-name config exists, if so
+        # ensure the partition_name known by the charm is consistent.
+        # If no partition name has been specified then generate one.
+        partition_name = self.model.config.get('partition-name')
+        if partition_name:
+            if partition_name != self._stored.partition_name:
+                self._stored.partition_name = partition_name
+        elif not self._stored.partition_name:
+            self._stored.partition_name = f"juju-compute-{random_string()}"
+        return self._stored.partition_name
 
     def _on_node_state_action(self, event):
         """Set the node state."""
@@ -152,27 +171,13 @@ class SlurmdCharm(CharmBase):
         else:
             slurmd_info_tmp = slurmd_info
 
-        partition_name = self.model.config.get('partition-name')
-        if partition_name:
-            partition_name_tmp = partition_name
-        else:
-            if not self._stored.partition_name:
-                def random_string(length=10):
-                    random_str = ""
-                    for i in range(length):
-                        random_integer = random.randint(97, 97 + 26 - 1)
-                        flip_bit = random.randint(0, 1)
-                        random_integer = random_integer - 32 if flip_bit == 1 else random_integer
-                        random_str += (chr(random_integer))
-                self._stored.partition_name = f"juju-compute-{random_string()}"
-            partition_name_tmp = self._stored.partition_name
-
+        partition_name = self._stored.partition_name
         partition_config = self.model.config.get('partition-config')
         partition_state = self.model.config.get('partition-state')
 
         return {
             'inventory': slurmd_info_tmp,
-            'partition_name': partition_name_tmp,
+            'partition_name': partition_name,
             'partition_state': partition_state,
             'partition_config': partition_config,
         }
