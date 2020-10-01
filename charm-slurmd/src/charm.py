@@ -28,6 +28,7 @@ class SlurmdCharm(CharmBase):
 
         self._stored.set_default(
             munge_key=str(),
+            user_node_state=str(),
         )
 
         self._slurm_manager = SlurmManager(self, "slurmd")
@@ -37,23 +38,31 @@ class SlurmdCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
+            self.on.upgrade_charm: self._on_upgrade,
 
             self.on.start:
             self._on_check_status_and_write_config,
 
             self.on.config_changed:
-            self._on_check_status_and_write_config,
-
-            self.on.upgrade_charm: self._on_upgrade,
+            self._on_send_slurmd_info,
 
             self._slurmd_peer.on.slurmd_peer_available:
             self._on_send_slurmd_info,
 
             self._slurmd.on.slurm_config_available:
             self._on_check_status_and_write_config,
+
+            self.on.node_state_action:
+            self._on_node_state_action,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
+
+
+    def _on_node_state_action(self, event):
+        """Set the node state."""
+        self._stored.user_node_state = event.params["node-state"]
+        self._on_send_slurm_info(event)
 
     def _on_install(self, event):
         self._slurm_manager.install()
@@ -121,13 +130,49 @@ class SlurmdCharm(CharmBase):
         if not slurmd_info:
             return None
 
+        user_node_state = self._stored.user_node_state
+        if user_node_state:
+            user_node_states = {
+                item.split("=")[0]: item.split("=")[1]
+                for item in user_node_state.split(",")
+            }
+
+            slurmd_info_tmp = copy.deepcopy(slurmd_info)
+
+            for partition in slurmd_info:
+                partition_tmp = copy.deepcopy(partition)
+                for slurmd_node in partition['inventory']:
+                    if slurmd_node['hostname'] in user_node_states.keys():
+                        slurmd_node_tmp = copy.deepcopy(slurmd_node)
+                        slurmd_node_tmp['state'] = user_node_states[slurmd_node['hostname']]
+                        partition_tmp['inventory'].remove(slurmd_node)
+                        partition_tmp['inventory'].append(slurmd_node_tmp)
+                slurmd_info_tmp.remove(partition)
+                slurmd_info_tmp.append(partition_tmp)
+        else:
+            slurmd_info_tmp = slurmd_info
+
         partition_name = self.model.config.get('partition-name')
+        if partition_name:
+            partition_name_tmp = partition_name
+        else:
+            if not self._stored.partition_name:
+                def random_string(length=10):
+                    random_str = ""
+                    for i in range(length):
+                        random_integer = random.randint(97, 97 + 26 - 1)
+                        flip_bit = random.randint(0, 1)
+                        random_integer = random_integer - 32 if flip_bit == 1 else random_integer
+                        random_str += (chr(random_integer))
+                self._stored.partition_name = f"juju-compute-{random_string()}"
+            partition_name_tmp = self._stored.partition_name
+
         partition_config = self.model.config.get('partition-config')
         partition_state = self.model.config.get('partition-state')
 
         return {
-            'inventory': slurmd_info,
-            'partition_name': partition_name,
+            'inventory': slurmd_info_tmp,
+            'partition_name': partition_name_tmp,
             'partition_state': partition_state,
             'partition_config': partition_config,
         }

@@ -1,7 +1,7 @@
 options:  
   partition-name:
     type: string
-    default: partition1
+    default:
     description: >-
       'Name by which the partition may be referenced (e.g. "Interactive"). This
       name can be specified by users when submitting jobs. If the PartitionName
