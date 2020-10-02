@@ -125,6 +125,7 @@ jobs:
           command: |
             echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju destroy-model circleci-$CIRCLE_SHA1-bionic -y
+          when: always
   deploy-focal:
     docker:
       - image: cimg/python:3.8.5 
@@ -166,6 +167,7 @@ jobs:
           command: |
             echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju destroy-model circleci-$CIRCLE_SHA1-focal -y
+          when: always
   deploy-centos7:
     docker:
       - image: cimg/python:3.8.5 
@@ -211,3 +213,4 @@ jobs:
           command: |
             echo $JUJU_CIRCLECI_USER_PASSWORD | juju login --user circleci
             juju destroy-model circleci-$CIRCLE_SHA1-centos7 -y
+          when: always
