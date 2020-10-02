@@ -84,6 +84,7 @@ class Nhc(Object):
         self.on.nhc_bin_available.emit()
 
     def get_nhc_info(self):
+        """Return nhc_info."""
         nhc_info = self._stored.nhc_info
         if nhc_info:
             return json.loads(nhc_info)

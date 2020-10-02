@@ -2,7 +2,6 @@
 """AcctGather (Influxdb) interface."""
 import json
 import logging
-
 import random
 
 import influxdb
@@ -77,22 +76,21 @@ class InfluxDB(Object):
 
     def _on_relation_changed(self, event):
         """Store influxdb_ingress in the charm."""
-
         if self.framework.model.unit.is_leader():
             if not self._stored.influxdb_admin_info:
                 ingress = event.relation.data[event.unit]['ingress-address']
                 port = event.relation.data[event.unit].get('port')
                 user = event.relation.data[event.unit].get('user')
                 password = event.relation.data[event.unit].get('password')
-    
+
                 if all([ingress, port, user, password]):
                     self._stored.influxdb_admin_info = json.dumps({
                         'ingress': ingress,
                         'port': port,
-                        'user': slurm_user,
-                        'password': slurm_password,
+                        'user': user,
+                        'password': password,
                     })
-    
+
                     # Influxdb client
                     client = influxdb.InfluxDBClient(
                         ingress,
@@ -100,10 +98,10 @@ class InfluxDB(Object):
                         user,
                         password,
                     )
-    
+
                     # Influxdb slurm user password
                     influx_slurm_password = random_string()
-    
+
                     # Create the database, user, and add privilege
                     client.create_database(self._INFLUX_DATABASE)
                     client.create_user(
@@ -115,7 +113,7 @@ class InfluxDB(Object):
                         self._INFLUX_DATABASE,
                         self._INFLUX_USER
                     )
-    
+
                     # Set the influxdb info
                     self._stored.influxdb_info = json.dumps(
                         {

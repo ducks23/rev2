@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """SlurmctldCharm."""
-import json
+import copy
 import logging
 
 from interface_acct_gather import InfluxDB
@@ -9,7 +9,6 @@ from interface_nhc import Nhc
 from interface_slurmctld import Slurmctld
 from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
-
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -53,20 +52,20 @@ class SlurmConfiguratorCharm(CharmBase):
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
         self._slurmd = Slurmd(self, "slurmd")
 
-        ##### Charm lifecycle events #####
+        # #### Charm lifecycle events #### #
         event_handler_bindings = {
-            ##### Juju lifecycle events #####
+            # #### Juju lifecycle events #### #
             self.on.install: self._on_install,
 
-            #self.on.start:
-            #self._on_check_status_and_write_config,
+            # self.on.start:
+            # self._on_check_status_and_write_config,
 
             self.on.config_changed:
             self._on_check_status_and_write_config,
 
             self.on.upgrade_charm: self._on_upgrade,
 
-            ######### Addons lifecycle events #########
+            # ######## Addons lifecycle events ######## #
             self._elasticsearch.on.elasticsearch_available:
             self._on_check_status_and_write_config,
 
@@ -85,7 +84,7 @@ class SlurmConfiguratorCharm(CharmBase):
             self._nhc.on.nhc_unavailable:
             self._on_check_status_and_write_config,
 
-            ######### Slurm component lifecycle events #########
+            # ######## Slurm component lifecycle events ######## #
             self._slurmctld.on.slurmctld_available:
             self._on_check_status_and_write_config,
 
@@ -174,7 +173,7 @@ class SlurmConfiguratorCharm(CharmBase):
 
         return slurmd_info_tmp
 
-    def _assemble_addons(self): 
+    def _assemble_addons(self):
         """Assemble any addon components."""
         acct_gather = self._influxdb.get_influxdb_info()
         elasticsearch_ingress = self._elasticsearch.get_elasticsearch_ingress()
@@ -192,8 +191,8 @@ class SlurmConfiguratorCharm(CharmBase):
                 'health_check_node_state': nhc_info['health_check_node_state'],
             }
 
-        if elasticsearch_endpoint:
-            ctxt['elasticsearch_address'] = elasticsearch_endpoint
+        if elasticsearch_ingress:
+            ctxt['elasticsearch_address'] = elasticsearch_ingress
 
         return ctxt
 
@@ -229,8 +228,8 @@ class SlurmConfiguratorCharm(CharmBase):
         """Return the slurmdbd_info from stored state."""
         return self._stored.munge_key
 
-    def get_default_partition(self, partition_name):
-        """get self._stored.default_partition."""
+    def get_default_partition(self):
+        """Return self._stored.default_partition."""
         return self._stored.default_partition
 
     def is_slurm_installed(self):

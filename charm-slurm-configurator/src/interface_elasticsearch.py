@@ -66,4 +66,5 @@ class Elasticsearch(Object):
         self.on.elasticsearch_unavailable.emit()
 
     def get_elasticsearch_ingress(self):
+        """Return elasticsearch_ingress."""
         return self._stored.elasticsearch_ingress
