@@ -133,6 +133,23 @@ class SlurmConfiguratorCharm(CharmBase):
         if not (slurmd_info and slurmctld_info and slurmdbd_info):
             return None
 
+        addons_info = self._assemble_addons()
+        partitions_info = self._assemble_partitions(slurmd_info)
+
+        logger.debug(addons_info)
+        logger.debug(partitions_info)
+        logger.debug(slurmctld_info)
+        logger.debug(slurmdbd_info)
+        logger.debug(slurmd_info_tmp)
+
+        return {
+            'partitions': partitions_info,
+            **slurmctld_info,
+            **slurmdbd_info,
+            **addons_info,
+        }
+
+    def _assemble_partitions(self, slurmd_info):
         slurmd_info_tmp = copy.deepcopy(slurmd_info)
 
         for partition in slurmd_info:
@@ -142,19 +159,7 @@ class SlurmConfiguratorCharm(CharmBase):
                 slurmd_info_tmp.remove(partition)
                 slurmd_info_tmp.append(partition_tmp)
 
-        addons_info = self._assemble_addons()
-
-        logger.debug(addons_info)
-        logger.debug(slurmctld_info)
-        logger.debug(slurmdbd_info)
-        logger.debug(slurmd_info_tmp)
-
-        return {
-            'slurmd_info': slurmd_info_tmp,
-            **slurmctld_info,
-            **slurmdbd_info,
-            **addons_info,
-        }
+        return slurmd_info_tmp
 
     def _assemble_addons(self): 
         """Assemble any addon components."""
