@@ -1,7 +1,21 @@
 export PATH := /snap/bin:$(PATH)
 
+lint: ## Run linter
+	tox -e lint
+
+clean: ## Remove .tox and build dirs
+	rm -rf .tox/
+	rm -rf venv/
+	rm -rf *.charm
+
 deploy-focal: ## deploy focal
 	@./scripts/deploy-focal.sh
+
+deploy-bionic: ## deploy bionic
+	@./scripts/deploy-bionic.sh
+
+deploy-centos7: ## deploy centos7
+	@./scripts/deploy-centos7.sh
 
 charms: ## Build all charms
 	@charmcraft build --from charm-slurmd
