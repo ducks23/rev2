@@ -68,6 +68,7 @@ class Slurmd(Object):
 
     @property
     def is_joined(self):
+        """Return True if relation is joined."""
         return self._relation is not None
 
     def set_slurmd_info_on_app_relation_data(self, slurmd_info):

@@ -2,6 +2,7 @@
 """utils.py module for slurmd charm."""
 import json
 import os
+import random
 import subprocess
 import sys
 
@@ -113,10 +114,12 @@ def get_active_units(relation_name):
 
 
 def random_string(length=10):
+    """Generate a random string."""
     random_str = ""
     for i in range(length):
         random_integer = random.randint(97, 97 + 26 - 1)
         flip_bit = random.randint(0, 1)
-        random_integer = random_integer - 32 if flip_bit == 1 else random_integer
+        random_integer = \
+            random_integer - 32 if flip_bit == 1 else random_integer
         random_str += (chr(random_integer))
     return random_str

@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 """SlurmdCharm."""
+import copy
 import logging
 
 from interface_slurmd import Slurmd
 from interface_slurmd_peer import SlurmdPeer
-from utils import random_string
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -13,6 +13,7 @@ from ops.model import (
     BlockedStatus,
 )
 from slurm_ops_manager import SlurmManager
+from utils import random_string
 
 
 logger = logging.getLogger()
@@ -54,7 +55,7 @@ class SlurmdCharm(CharmBase):
             self._slurmd.on.slurm_config_available:
             self._on_check_status_and_write_config,
 
-            self.on.node_state_action:
+            self.on.set_node_state_action:
             self._on_node_state_action,
         }
         for event, handler in event_handler_bindings.items():
@@ -64,25 +65,6 @@ class SlurmdCharm(CharmBase):
         self.get_set_return_partition_name()
         self._on_send_slurmd_info(event)
 
-    def get_set_return_partition_name(self):
-        """Set the partition name."""
-
-        # Determine if a partition-name config exists, if so
-        # ensure the partition_name known by the charm is consistent.
-        # If no partition name has been specified then generate one.
-        partition_name = self.model.config.get('partition-name')
-        if partition_name:
-            if partition_name != self._stored.partition_name:
-                self._stored.partition_name = partition_name
-        elif not self._stored.partition_name:
-            self._stored.partition_name = f"juju-compute-{random_string()}"
-        return self._stored.partition_name
-
-    def _on_node_state_action(self, event):
-        """Set the node state."""
-        self._stored.user_node_state = event.params["node-state"]
-        self._on_send_slurm_info(event)
-
     def _on_install(self, event):
         self._slurm_manager.install()
         self._stored.slurm_installed = True
@@ -91,13 +73,18 @@ class SlurmdCharm(CharmBase):
     def _on_upgrade(self, event):
         self._slurm_manager.upgrade()
 
+    def _on_set_node_state_action(self, event):
+        """Set the node state."""
+        self._stored.user_node_state = event.params["node-state"]
+        self._on_send_slurm_info(event)
+
     def _on_send_slurmd_info(self, event):
         if self.framework.model.unit.is_leader():
             if self._slurmd.is_joined:
-                slurmd_info = self._assemble_slurmd_info()
-                if slurmd_info:
+                partition = self._assemble_partition()
+                if partition:
                     self._slurmd.set_slurmd_info_on_app_relation_data(
-                        slurmd_info
+                        partition
                     )
                     return
             event.defer()
@@ -143,27 +130,49 @@ class SlurmdCharm(CharmBase):
         else:
             return True
 
+    def _assemble_partition(self):
+        """Assemble the partition info."""
+        partition_name = self._stored.partition_name
+        partition_config = self.model.config.get('partition-config')
+        partition_state = self.model.config.get('partition-state')
+
+        slurmd_info = self._assemble_slurmd_info()
+
+        return {
+            'inventory': slurmd_info,
+            'partition_name': partition_name,
+            'partition_state': partition_state,
+            'partition_config': partition_config,
+        }
+
     def _assemble_slurmd_info(self):
-        """Get the slurmd inventory and assemble the partition."""
+        """Apply mutations to nodes in the partition, return slurmd nodes."""
         slurmd_info = self._slurmd_peer.get_slurmd_info()
         if not slurmd_info:
             return None
 
+        # If the user has set custom state for nodes
+        # ensure we update the state for the targeted nodes.
         user_node_state = self._stored.user_node_state
         if user_node_state:
-            user_node_states = {
+            node_states = {
                 item.split("=")[0]: item.split("=")[1]
                 for item in user_node_state.split(",")
             }
 
+            # Copy the slurmd_info returned from the the slurmd-peer relation
+            # to a temporary variable to which we will make modifications.
             slurmd_info_tmp = copy.deepcopy(slurmd_info)
 
+            # Iterate over the slurmd nodes in the partition and check
+            # for nodes that need their state modified.
             for partition in slurmd_info:
                 partition_tmp = copy.deepcopy(partition)
                 for slurmd_node in partition['inventory']:
-                    if slurmd_node['hostname'] in user_node_states.keys():
+                    if slurmd_node['hostname'] in node_states.keys():
                         slurmd_node_tmp = copy.deepcopy(slurmd_node)
-                        slurmd_node_tmp['state'] = user_node_states[slurmd_node['hostname']]
+                        slurmd_node_tmp['state'] = \
+                            node_states[slurmd_node['hostname']]
                         partition_tmp['inventory'].remove(slurmd_node)
                         partition_tmp['inventory'].append(slurmd_node_tmp)
                 slurmd_info_tmp.remove(partition)
@@ -171,16 +180,20 @@ class SlurmdCharm(CharmBase):
         else:
             slurmd_info_tmp = slurmd_info
 
-        partition_name = self._stored.partition_name
-        partition_config = self.model.config.get('partition-config')
-        partition_state = self.model.config.get('partition-state')
+        return slurmd_info_tmp
 
-        return {
-            'inventory': slurmd_info_tmp,
-            'partition_name': partition_name,
-            'partition_state': partition_state,
-            'partition_config': partition_config,
-        }
+    def get_set_return_partition_name(self):
+        """Set the partition name."""
+        # Determine if a partition-name config exists, if so
+        # ensure the partition_name known by the charm is consistent.
+        # If no partition name has been specified then generate one.
+        partition_name = self.model.config.get('partition-name')
+        if partition_name:
+            if partition_name != self._stored.partition_name:
+                self._stored.partition_name = partition_name
+        elif not self._stored.partition_name:
+            self._stored.partition_name = f"juju-compute-{random_string()}"
+        return self._stored.partition_name
 
     def set_munge_key(self, munge_key):
         """Set the munge key."""
