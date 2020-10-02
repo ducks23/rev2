@@ -140,7 +140,6 @@ class SlurmConfiguratorCharm(CharmBase):
         logger.debug(partitions_info)
         logger.debug(slurmctld_info)
         logger.debug(slurmdbd_info)
-        logger.debug(slurmd_info_tmp)
 
         return {
             'partitions': partitions_info,
