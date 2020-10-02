@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """SlurmdCharm."""
 import logging
+import random
 
 from interface_slurmd import Slurmd
 from interface_slurmd_peer import SlurmdPeer
@@ -29,6 +30,7 @@ class SlurmdCharm(CharmBase):
         self._stored.set_default(
             munge_key=str(),
             user_node_state=str(),
+            partition_name=None,
         )
 
         self._slurm_manager = SlurmManager(self, "slurmd")

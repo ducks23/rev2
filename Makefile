@@ -15,6 +15,15 @@ charms: ## Build all charms
 	@charmcraft build --from charm-slurmctld
 	@charmcraft build --from charm-slurmdbd
 
+deploy-bionic:
+	@./scripts/deploy-bionic.sh
+
+deploy-centos7:
+	@./scripts/deploy-centos7.sh
+
+deploy-focal:
+	@./scripts/deploy-focal.sh
+
 # Display target comments in 'make help'
 help: 
 	grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
