@@ -29,6 +29,8 @@ requires:
     interface: elasticsearch
   nhc:
     interface: nhc
+  influxdb-api:
+    interface: influxdb-api
 
 resources:
   slurm:

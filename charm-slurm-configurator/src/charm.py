@@ -2,9 +2,13 @@
 """SlurmctldCharm."""
 import logging
 
+from interface_acct_gather import InfluxDB
+from interface_elasticsearch import Elasticsearch
+from interface_nhc import Nhc
 from interface_slurmctld import Slurmctld
 from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
+
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -29,12 +33,20 @@ class SlurmConfiguratorCharm(CharmBase):
 
         self._stored.set_default(
             default_partition=str(),
+            elasticsearch_ingress=str(),
+            influxdb_ingress=str(),
             munge_key=str(),
             slurm_installed=False,
             slurmctld_available=False,
             slurmdbd_available=False,
             slurmd_available=False,
         )
+
+        self._elasticsearch = Elasticsearch("elasticsearch")
+
+        self._influxdb = InfluxDB("influxdb-api")
+
+        self._nhc = Nhc("nhc")
 
         self._slurm_manager = SlurmManager(self, "slurmd")
 
@@ -56,6 +68,12 @@ class SlurmConfiguratorCharm(CharmBase):
             self.on.upgrade_charm: self._on_upgrade,
 
             ##### User defined charm lifecycle events #####
+            self._influxdb.on.influxdb_available:
+            self._on_check_status_and_write_config,
+
+            self._influxdb.on.influxdb_unavailable:
+            self._on_check_status_and_write_config,
+
             self._slurmctld.on.slurmctld_available:
             self._on_check_status_and_write_config,
 
@@ -115,15 +133,6 @@ class SlurmConfiguratorCharm(CharmBase):
         if not (slurmd_info and slurmctld_info and slurmdbd_info):
             return None
 
-        logger.debug(slurmctld_info)
-        logger.debug(slurmdbd_info)
-        logger.debug(slurmd_info)
-
-        ctxt = {
-            'nhc': {},
-            'elasticsearch_address': "",
-        }
-
         slurmd_info_tmp = copy.deepcopy(slurmd_info)
 
         for partition in slurmd_info:
@@ -133,12 +142,45 @@ class SlurmConfiguratorCharm(CharmBase):
                 slurmd_info_tmp.remove(partition)
                 slurmd_info_tmp.append(partition_tmp)
 
+        addons_info = self._assemble_addons()
+
+        logger.debug(addons_info)
+        logger.debug(slurmctld_info)
+        logger.debug(slurmdbd_info)
+        logger.debug(slurmd_info_tmp)
+
         return {
             'slurmd_info': slurmd_info_tmp,
             **slurmctld_info,
             **slurmdbd_info,
-            **ctxt,
+            **addons_info,
         }
+
+    def _assemble_addons(self): 
+        """Assemble any addon components."""
+
+        acct_gather = self._stored.influxdb_ingress
+        elasticsearch_endpoint = self._stored.elasticsearch_ingress
+        nhc_info = self._stored.nhc_info
+
+        ctxt = {}
+
+        if acct_gather:
+            ctxt['acct_gather'] = {
+                'host': acct_gather,
+            }
+
+        if nhc_info:
+            ctxt['nhc'] = {
+                'nhc_bin': nhc_info['nhc_bin'],
+                'health_check_interval': nhc_info['health_check_interval'],
+                'health_check_node_state': nhc_info['health_check_node_state'],
+            }
+
+        if elasticsearch_endpoint:
+            ctxt['elasticsearch_address'] = elasticsearch_endpoint
+
+        return ctxt
 
     def _check_status(self):
         slurmctld_available = self._stored.slurmctld_available
@@ -174,6 +216,18 @@ class SlurmConfiguratorCharm(CharmBase):
     def get_munge_key(self):
         """Return the slurmdbd_info from stored state."""
         return self._stored.munge_key
+
+    def set_elasticsearch_ingress(self, elasticsearch_ingress):
+        """Set the elasticsearch_ingress."""
+        self._stored.elasticsearch_ingresss = elasticsearch_ingress
+
+    def set_influxdb_ingress(self, influxdb_ingress):
+        """Set the influxdb_ingress."""
+        self._stored.influxdb_ingress = influxdb_ingress
+
+    def set_nhc_info(self, nhc_info):
+        """Set the nhc_info in local stored state."""
+        self._stored.nhc_info = nhc_info
 
     def get_default_partition(self, partition_name):
         """get self._stored.default_partition."""
