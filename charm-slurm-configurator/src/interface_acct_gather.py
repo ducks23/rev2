@@ -113,16 +113,19 @@ class InfluxDB(Object):
                 self.on.influxdb_available.emit()
 
     def _on_relation_broken(self, event):
-        """Set influxdb_ingress and emit influxdb_unavailable."""
-        influxdb_admin_info = json.loads(self._stored.influxdb_admin_info)
-        client = influxdb.InfluxDBClient(
-            influxdb_admin_info['ingress'],
-            influxdb_admin_info['port'],
-            influxdb_admin_info['user'],
-            influxdb_admin_info['password'],
-        )
-        client.drop_database(_INFLUX_DATABASE)
-        client.drop_user(_INFLUX_USER)
+        """Remove the database and user from influxdb."""
+        if self._stored.influxdb_admin_info:
+            influxdb_admin_info = json.loads(self._stored.influxdb_admin_info)
 
-        self._charm.set_influxdb_info("")
-        self.on.influxdb_unavailable.emit()
+            client = influxdb.InfluxDBClient(
+                influxdb_admin_info['ingress'],
+                influxdb_admin_info['port'],
+                influxdb_admin_info['user'],
+                influxdb_admin_info['password'],
+            )
+            client.drop_database(_INFLUX_DATABASE)
+            client.drop_user(_INFLUX_USER)
+
+            self._charm.set_influxdb_info("")
+            self._stored.influxdb_admin_info = ""
+            self.on.influxdb_unavailable.emit()
