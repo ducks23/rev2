@@ -14,6 +14,8 @@ charms: ## Build all charms
 	@charmcraft build --from charm-slurm-configurator
 	@charmcraft build --from charm-slurmctld
 	@charmcraft build --from charm-slurmdbd
+deploy-bionic:
+	@./scripts/deploy-bionic.sh
 
 deploy-bionic:
 	@./scripts/deploy-bionic.sh
