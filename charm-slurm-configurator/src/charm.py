@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """SlurmctldCharm."""
+import json
 import logging
 
 from interface_acct_gather import InfluxDB
@@ -33,8 +34,6 @@ class SlurmConfiguratorCharm(CharmBase):
 
         self._stored.set_default(
             default_partition=str(),
-            elasticsearch_ingress=str(),
-            influxdb_ingress=str(),
             munge_key=str(),
             slurm_installed=False,
             slurmctld_available=False,
@@ -67,13 +66,26 @@ class SlurmConfiguratorCharm(CharmBase):
 
             self.on.upgrade_charm: self._on_upgrade,
 
-            ##### User defined charm lifecycle events #####
+            ######### Addons lifecycle events #########
+            self._elasticsearch.on.elasticsearch_available:
+            self._on_check_status_and_write_config,
+
+            self._elasticsearch.on.elasticsearch_unavailable:
+            self._on_check_status_and_write_config,
+
             self._influxdb.on.influxdb_available:
             self._on_check_status_and_write_config,
 
             self._influxdb.on.influxdb_unavailable:
             self._on_check_status_and_write_config,
 
+            self._nhc.on.nhc_available:
+            self._on_check_status_and_write_config,
+
+            self._nhc.on.nhc_unavailable:
+            self._on_check_status_and_write_config,
+
+            ######### Slurm component lifecycle events #########
             self._slurmctld.on.slurmctld_available:
             self._on_check_status_and_write_config,
 
@@ -97,16 +109,17 @@ class SlurmConfiguratorCharm(CharmBase):
 
     def _on_install(self, event):
         """Install the slurm snap and set the munge key."""
-        # Install the slurm snap and set the snap mode
         self._slurm_manager.install()
         self._stored.munge_key = self._slurm_manager.get_munge_key()
         self._stored.slurm_installed = True
         self.unit.status = ActiveStatus("Slurm Installed")
 
     def _on_upgrade(self, event):
+        """Upgrade the charm."""
         self._slurm_manager.upgrade()
 
     def _on_check_status_and_write_config(self, event):
+        """Check that we have what we need before we proceed."""
         if not self._check_status():
             event.defer()
             return
@@ -149,6 +162,7 @@ class SlurmConfiguratorCharm(CharmBase):
         }
 
     def _assemble_partitions(self, slurmd_info):
+        """Make any needed modifications to partition data."""
         slurmd_info_tmp = copy.deepcopy(slurmd_info)
 
         for partition in slurmd_info:
@@ -162,15 +176,14 @@ class SlurmConfiguratorCharm(CharmBase):
 
     def _assemble_addons(self): 
         """Assemble any addon components."""
+        acct_gather = self._influxdb.get_influxdb_info()
+        elasticsearch_ingress = self._elasticsearch.get_elasticsearch_ingress()
+        nhc_info = self._nhc.get_nhc_info()
 
-        acct_gather = self._stored.influxdb_info
-        elasticsearch_endpoint = self._stored.elasticsearch_ingress
-        nhc_info = self._stored.nhc_info
-
-        ctxt = {}
+        ctxt = dict()
 
         if acct_gather:
-            ctxt['acct_gather'] = json.loads(acct_gather)
+            ctxt['acct_gather'] = acct_gather
 
         if nhc_info:
             ctxt['nhc'] = {
@@ -185,6 +198,7 @@ class SlurmConfiguratorCharm(CharmBase):
         return ctxt
 
     def _check_status(self):
+        """Check that the core components we need exist."""
         slurmctld_available = self._stored.slurmctld_available
         slurmdbd_available = self._stored.slurmdbd_available
         slurmd_available = self._stored.slurmd_available
@@ -211,29 +225,17 @@ class SlurmConfiguratorCharm(CharmBase):
             self.unit.status = ActiveStatus("")
             return True
 
-    def is_slurm_installed(self):
-        """Return true/false based on whether or not slurm is installed."""
-        return self._stored.slurm_installed
-
     def get_munge_key(self):
         """Return the slurmdbd_info from stored state."""
         return self._stored.munge_key
 
-    def set_elasticsearch_ingress(self, elasticsearch_ingress):
-        """Set the elasticsearch_ingress."""
-        self._stored.elasticsearch_ingresss = elasticsearch_ingress
-
-    def set_influxdb_info(self, influxdb_info):
-        """Set the influxdb_info."""
-        self._stored.influxdb_info = influxdb_info
-
-    def set_nhc_info(self, nhc_info):
-        """Set the nhc_info in local stored state."""
-        self._stored.nhc_info = nhc_info
-
     def get_default_partition(self, partition_name):
         """get self._stored.default_partition."""
         return self._stored.default_partition
+
+    def is_slurm_installed(self):
+        """Return true/false based on whether or not slurm is installed."""
+        return self._stored.slurm_installed
 
     def set_slurmctld_available(self, slurmctld_available):
         """Set slurmctld_available."""

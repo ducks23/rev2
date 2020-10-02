@@ -1,10 +1,13 @@
 #!/usr/bin/python3
 """NhcRequires."""
+import json
+
 from ops.framework import (
     EventBase,
     EventSource,
     Object,
     ObjectEvents,
+    StoredState,
 )
 
 
@@ -21,6 +24,7 @@ class NhcEvents(ObjectEvents):
 class Nhc(Object):
     """Provide slurm.conf, sinfo, and scontrol locations to nhc."""
 
+    _stored = StoredState()
     on = NhcEvents()
 
     def __init__(self, charm, relation_name):
@@ -28,6 +32,8 @@ class Nhc(Object):
         super().__init__(charm, relation_name)
         self._charm = charm
         self._relation_name = relation_name
+
+        self._stored.set_default(nhc_info=str())
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_created,
@@ -70,9 +76,16 @@ class Nhc(Object):
             event.defer()
             return
 
-        self._charm.set_nhc_info({
+        self._stored.nhc_info = json.dumps({
             'nhc_bin': nhc_bin_path,
             'health_check_interval': nhc_health_check_interval,
             'health_check_node_state': nhc_health_check_node_state,
         })
         self.on.nhc_bin_available.emit()
+
+    def get_nhc_info(self):
+        nhc_info = self._stored.nhc_info
+        if nhc_info:
+            return json.loads(nhc_info)
+        else:
+            return None

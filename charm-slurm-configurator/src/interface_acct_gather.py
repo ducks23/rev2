@@ -60,7 +60,10 @@ class InfluxDB(Object):
         self._charm = charm
         self._relation_name = relation_name
 
-        self._stored.set_default(influxdb_admin_info=str())
+        self._stored.set_default(
+            influxdb_info=str(),
+            influxdb_admin_info=str(),
+        )
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
@@ -75,64 +78,91 @@ class InfluxDB(Object):
     def _on_relation_changed(self, event):
         """Store influxdb_ingress in the charm."""
 
-        if not self._stored.influxdb_admin_info:
-            ingress = event.relation.data[event.unit]['ingress-address']
-            port = event.relation.data[event.unit].get('port')
-            user = event.relation.data[event.unit].get('user')
-            password = event.relation.data[event.unit].get('password')
-
-            if all([ingress, port, user, password]):
-                self._stored.influxdb_admin_info = json.dumps({
-                    'ingress': ingress,
-                    'port': port,
-                    'user': slurm_user,
-                    'password': slurm_password,
-                })
-
-                # Influxdb client
-                client = influxdb.InfluxDBClient(ingress, port, user, password)
-
-                # influxdb slurm user password
-                influx_slurm_password = random_string()
-
-                # Create the database, user, and add privilege
-                client.create_database(_INFLUX_DATABASE)
-                client.create_user(_INFLUX_DATABASE, influx_slurm_password)
-                client.grant_privilege(
-                    _INFLUX_PRIVILEGE,
-                    _INFLUX_DATABASE,
-                    _INFLUX_USER
-                )
-
-                self._charm.set_influxdb_info(
-                    json.dumps({
+        if self.framework.model.unit.is_leader():
+            if not self._stored.influxdb_admin_info:
+                ingress = event.relation.data[event.unit]['ingress-address']
+                port = event.relation.data[event.unit].get('port')
+                user = event.relation.data[event.unit].get('user')
+                password = event.relation.data[event.unit].get('password')
+    
+                if all([ingress, port, user, password]):
+                    self._stored.influxdb_admin_info = json.dumps({
                         'ingress': ingress,
                         'port': port,
-                        'user': _INFLUX_USER,
-                        'password': influx_slurm_password,
+                        'user': slurm_user,
+                        'password': slurm_password,
                     })
-                )
-                self.on.influxdb_available.emit()
+    
+                    # Influxdb client
+                    client = influxdb.InfluxDBClient(
+                        ingress,
+                        port,
+                        user,
+                        password,
+                    )
+    
+                    # Influxdb slurm user password
+                    influx_slurm_password = random_string()
+    
+                    # Create the database, user, and add privilege
+                    client.create_database(self._INFLUX_DATABASE)
+                    client.create_user(
+                        self._INFLUX_DATABASE,
+                        influx_slurm_password
+                    )
+                    client.grant_privilege(
+                        self._INFLUX_PRIVILEGE,
+                        self._INFLUX_DATABASE,
+                        self._INFLUX_USER
+                    )
+    
+                    # Set the influxdb info
+                    self._stored.influxdb_info = json.dumps(
+                        {
+                            'ingress': ingress,
+                            'port': port,
+                            'user': self._INFLUX_USER,
+                            'password': influx_slurm_password,
+                        }
+                    )
+                    self.on.influxdb_available.emit()
 
     def _on_relation_broken(self, event):
         """Remove the database and user from influxdb."""
-        if self._stored.influxdb_admin_info:
-            influxdb_admin_info = json.loads(self._stored.influxdb_admin_info)
+        if self.framework.model.unit.is_leader():
+            if self._stored.influxdb_admin_info:
+                influxdb_admin_info = json.loads(
+                    self._stored.influxdb_admin_info
+                )
 
-            client = influxdb.InfluxDBClient(
-                influxdb_admin_info['ingress'],
-                influxdb_admin_info['port'],
-                influxdb_admin_info['user'],
-                influxdb_admin_info['password'],
-            )
-            databases = [db['name'] for db in client.get_list_database()]
-            if _INFLUX_DATABASE in databases:
-                client.drop_database(_INFLUX_DATABASE)
+                client = influxdb.InfluxDBClient(
+                    influxdb_admin_info['ingress'],
+                    influxdb_admin_info['port'],
+                    influxdb_admin_info['user'],
+                    influxdb_admin_info['password'],
+                )
+                databases = [
+                    db['name']
+                    for db in client.get_list_database()
+                ]
+                if self._INFLUX_DATABASE in databases:
+                    client.drop_database(self._INFLUX_DATABASE)
 
-            users = [db['user'] for db in client.get_list_users()]
-            if _INFLUX_USER in users:
-                client.drop_user(_INFLUX_USER)
+                users = [
+                    db['user']
+                    for db in client.get_list_users()
+                ]
+                if self._INFLUX_USER in users:
+                    client.drop_user(self._INFLUX_USER)
 
-            self._charm.set_influxdb_info("")
-            self._stored.influxdb_admin_info = ""
-            self.on.influxdb_unavailable.emit()
+                self._stored.influxdb_info = ""
+                self._stored.influxdb_admin_info = ""
+                self.on.influxdb_unavailable.emit()
+
+    def get_influxdb_info(self):
+        """Return the influxdb info."""
+        influxdb_info = self._stored.influxdb_info
+        if influxdb_info:
+            return json.loads(influxdb_info)
+        else:
+            return None
