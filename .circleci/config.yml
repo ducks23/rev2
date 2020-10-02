@@ -99,10 +99,6 @@ jobs:
             sudo add-apt-repository -yu ppa:juju/stable
             sudo apt-get update
             sudo apt-get install -y juju
-      - run:
-          name: "Clone slurm-charm-bundles"
-          command: |
-             git clone https://github.com/omnivector-solutions/slurm-charm-bundles .
       - restore_cache:
           name: "Restore the artifacts"
           key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
@@ -144,10 +140,6 @@ jobs:
             sudo add-apt-repository -yu ppa:juju/stable
             sudo apt-get update
             sudo apt-get install -y juju
-      - run:
-          name: "Clone slurm-charm-bundles"
-          command: |
-             git clone https://github.com/omnivector-solutions/slurm-charm-bundles .
       - restore_cache:
           name: "Restore the artifacts"
           key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
@@ -189,10 +181,6 @@ jobs:
             sudo add-apt-repository -yu ppa:juju/stable
             sudo apt-get update
             sudo apt-get install -y juju
-      - run:
-          name: "Clone slurm-charm-bundles"
-          command: |
-             git clone https://github.com/omnivector-solutions/slurm-charm-bundles .
       - restore_cache:
           name: "Restore the artifacts"
           key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
