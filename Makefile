@@ -9,6 +9,15 @@ clean: ## Remove .tox and build dirs
 	rm -rf venv/
 	rm -rf *.charm
 
+deploy-bionic:
+	@./scripts/deploy-bionic.sh
+
+deploy-centos7:
+	@./scripts/deploy-centos7.sh
+
+deploy-focal:
+	@./scripts/deploy-focal.sh
+
 charms: ## Build all charms
 	@charmcraft build --from charm-slurmd
 	@charmcraft build --from charm-slurm-configurator

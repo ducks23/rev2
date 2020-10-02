@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """SlurmctldCharm."""
+import copy
 import logging
 
 from interface_slurmctld import Slurmctld
@@ -42,20 +43,15 @@ class SlurmConfiguratorCharm(CharmBase):
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
         self._slurmd = Slurmd(self, "slurmd")
 
-        ##### Charm lifecycle events #####
         event_handler_bindings = {
-            ##### Juju lifecycle events #####
             self.on.install: self._on_install,
 
-            #self.on.start:
-            #self._on_check_status_and_write_config,
 
             self.on.config_changed:
             self._on_check_status_and_write_config,
 
             self.on.upgrade_charm: self._on_upgrade,
 
-            ##### User defined charm lifecycle events #####
             self._slurmctld.on.slurmctld_available:
             self._on_check_status_and_write_config,
 
@@ -79,7 +75,6 @@ class SlurmConfiguratorCharm(CharmBase):
 
     def _on_install(self, event):
         """Install the slurm snap and set the munge key."""
-        # Install the slurm snap and set the snap mode
         self._slurm_manager.install()
         self._stored.munge_key = self._slurm_manager.get_munge_key()
         self._stored.slurm_installed = True
@@ -176,7 +171,7 @@ class SlurmConfiguratorCharm(CharmBase):
         return self._stored.munge_key
 
     def get_default_partition(self, partition_name):
-        """get self._stored.default_partition."""
+        """Get self._stored.default_partition."""
         return self._stored.default_partition
 
     def set_slurmctld_available(self, slurmctld_available):
