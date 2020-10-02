@@ -1,4 +1,4 @@
-node-state:
+set-node-state:
   description: >-
     'Set specific node:states mappings for nodes in this partition.
      Acceptable node state values are; DOWN, DRAIN, FAIL, or FAILING.
