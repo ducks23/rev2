@@ -89,8 +89,10 @@ class InfluxDB(Object):
                     'password': slurm_password,
                 })
 
+                # Influxdb client
                 client = influxdb.InfluxDBClient(ingress, port, user, password)
 
+                # influxdb slurm user password
                 influx_slurm_password = random_string()
 
                 # Create the database, user, and add privilege
@@ -123,8 +125,13 @@ class InfluxDB(Object):
                 influxdb_admin_info['user'],
                 influxdb_admin_info['password'],
             )
-            client.drop_database(_INFLUX_DATABASE)
-            client.drop_user(_INFLUX_USER)
+            databases = [db['name'] for db in client.get_list_database()]
+            if _INFLUX_DATABASE in databases:
+                client.drop_database(_INFLUX_DATABASE)
+
+            users = [db['user'] for db in client.get_list_users()]
+            if _INFLUX_USER in users:
+                client.drop_user(_INFLUX_USER)
 
             self._charm.set_influxdb_info("")
             self._stored.influxdb_admin_info = ""
