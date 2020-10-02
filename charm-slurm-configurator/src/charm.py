@@ -163,16 +163,14 @@ class SlurmConfiguratorCharm(CharmBase):
     def _assemble_addons(self): 
         """Assemble any addon components."""
 
-        acct_gather = self._stored.influxdb_ingress
+        acct_gather = self._stored.influxdb_info
         elasticsearch_endpoint = self._stored.elasticsearch_ingress
         nhc_info = self._stored.nhc_info
 
         ctxt = {}
 
         if acct_gather:
-            ctxt['acct_gather'] = {
-                'host': acct_gather,
-            }
+            ctxt['acct_gather'] = json.loads(acct_gather)
 
         if nhc_info:
             ctxt['nhc'] = {
@@ -225,9 +223,9 @@ class SlurmConfiguratorCharm(CharmBase):
         """Set the elasticsearch_ingress."""
         self._stored.elasticsearch_ingresss = elasticsearch_ingress
 
-    def set_influxdb_ingress(self, influxdb_ingress):
-        """Set the influxdb_ingress."""
-        self._stored.influxdb_ingress = influxdb_ingress
+    def set_influxdb_info(self, influxdb_info):
+        """Set the influxdb_info."""
+        self._stored.influxdb_info = influxdb_info
 
     def set_nhc_info(self, nhc_info):
         """Set the nhc_info in local stored state."""
