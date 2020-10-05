@@ -57,7 +57,7 @@ jobs:
           name: "make charms"
           command: |
             make charms
-      - run:
+      - ruN:
           name: "Pull juju circleci user creds from s3"
           command: |
             aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
