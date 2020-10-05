@@ -53,10 +53,26 @@ jobs:
           juju add-model git-${{ steps.vars.outputs.sha_short }}-bionic
           juju add-space -m git-${{ steps.vars.outputs.sha_short }}-bionic nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
           juju model-config logging-config="<root>=DEBUG;juju.worker.dependency=CRITICAL;unit=DEBUG"
+      - name: deploy bionic charms
+        run: |
+          make deploy-bionic
+          make relate
+      - name: wait
+        run: |
+          wait 5m
       - name: check status
         run: |
           juju status
-
+      - name: remove charms
+        run: |
+          juju remove-application slurmctld
+          juju remove-application slurmdbd
+          juju remove-application slurmd
+          juju remove-application slurm-configurator
+          juju remove-application mysql
+      - name: check status
+        run: |
+          juju status
       - name: delete model
         run: |
           juju destroy-model --force -y git-${{ steps.vars.outputs.sha_short }}-bionic
