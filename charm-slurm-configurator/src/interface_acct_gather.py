@@ -121,6 +121,7 @@ class InfluxDB(Object):
                             'port': port,
                             'user': self._INFLUX_USER,
                             'password': influx_slurm_password,
+                            'database': self._INFLUX_DATABASE,
                         }
                     )
                     self.on.influxdb_available.emit()
