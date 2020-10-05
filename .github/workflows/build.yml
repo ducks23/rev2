@@ -19,6 +19,9 @@ jobs:
           python-version: '3.x'
           architecture: 'x64'
       - uses: actions/checkout@v1
+      - name: install juju
+        run: | 
+          snap install juju --classic
       - name: Install charmcraft
         run: |
           pip install charmcraft
