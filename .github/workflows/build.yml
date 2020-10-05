@@ -51,7 +51,7 @@ jobs:
       - name: add model
         run: |
           juju add-model git-${{ steps.vars.outputs.sha_short }}-bionic
-          juju add-space -m git-${{ steps.vars.outputs.sha_short }} nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+          juju add-space -m git-${{ steps.vars.outputs.sha_short }}-bionic nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
           juju model-config logging-config="<root>=DEBUG;juju.worker.dependency=CRITICAL;unit=DEBUG"
       - name: check status
         run: |
