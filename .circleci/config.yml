@@ -75,7 +75,7 @@ jobs:
       - save_cache:
           name: "Cache the built charms and .local/share/juju for the next workflow."
           key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
-         paths:
+          paths:
             - slurm.resource
             - slurm-configurator.charm
             - slurmd.charm
