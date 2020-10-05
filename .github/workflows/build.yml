@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v1
       - name: install juju
         run: | 
-          snap install juju --classic
+          sudo snap install juju --classic
       - name: Install charmcraft
         run: |
           pip install charmcraft
