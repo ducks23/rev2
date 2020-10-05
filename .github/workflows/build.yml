@@ -31,12 +31,12 @@ jobs:
           aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
           tar -xzvf juju-local.tar.gz
           echo "JUJU_DATA=/home/runner/work/rev2/rev2/.local/share/juju" >> $GITHUB_ENV
-          pwd
       - name: contact controller
         run: |
-          echo $JUJU_DATA
           echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju login --user circleci
       - name: Build charms
         run: |
           make charms
-          ls -la
+      - name: pull classic snap
+        run: |
+          wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource

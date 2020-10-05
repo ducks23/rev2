@@ -17,6 +17,9 @@ deploy-bionic: ## deploy bionic
 deploy-centos7: ## deploy centos7
 	@./scripts/deploy-centos7.sh
 
+relate: ## deploy centos7
+	@./scripts/relate.sh
+
 charms: ## Build all charms
 	@charmcraft build --from charm-slurmd
 	@charmcraft build --from charm-slurm-configurator
