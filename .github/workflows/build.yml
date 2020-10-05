@@ -64,6 +64,7 @@ jobs:
         run: |
           juju status
       - name: remove charms
+        if: ${{ always() }}
         run: |
           juju remove-application slurmctld
           juju remove-application slurmdbd
@@ -74,5 +75,6 @@ jobs:
         run: |
           juju status
       - name: delete model
+        if: ${{ always() }}
         run: |
           juju destroy-model --force -y git-${{ steps.vars.outputs.sha_short }}-bionic
