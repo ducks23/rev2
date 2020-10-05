@@ -3,7 +3,7 @@ name: TestCharms
 on: pull_request
 jobs:
   build-charms:
-    name: "Release"
+    name: "build charms"
     runs-on: "ubuntu-latest"
     steps:
 
@@ -44,10 +44,19 @@ jobs:
         id: vars
         shell: bash
         run: |
-          echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
           echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
-
       - name: Another step
         run: |
-          echo "Branch: ${{ steps.vars.outputs.branch }}"
           echo "Sha: ${{ steps.vars.outputs.sha_short }}"
+      - name: add model
+        run: |
+          juju add-model git-${{ steps.vars.outputs.sha_short }}-bionic
+          juju add-space -m git-${{ steps.vars.outputs.sha_short }} nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+          juju model-config logging-config="<root>=DEBUG;juju.worker.dependency=CRITICAL;unit=DEBUG"
+      - name: check status
+        run: |
+          juju status
+
+      - name: delete model
+        run: |
+          juju destroy-model --force -y git-${{ steps.vars.outputs.sha_short }}-bionic
