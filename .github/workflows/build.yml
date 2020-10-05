@@ -31,6 +31,10 @@ jobs:
           aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
           tar -xzvf juju-local.tar.gz
           echo "JUJU_DATA=/github/home/.local/share/juju" >> $GITHUB_ENV
+          pwd
+      - name: contact controller
+        run: |
+          echo $JUJU_DATA
           echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju login --user circleci
       - name: Build charms
         run: |
