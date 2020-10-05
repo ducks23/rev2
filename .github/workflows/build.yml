@@ -63,6 +63,9 @@ jobs:
       - name: check status
         run: |
           juju status
+      - name: cluster health
+        run: |
+          juju run slurmctld/0 "sinfo"
       - name: remove charms
         if: ${{ always() }}
         run: |
