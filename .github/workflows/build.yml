@@ -59,7 +59,7 @@ jobs:
           make relate
       - name: wait
         run: |
-          wait 5m
+          sleep 5m
       - name: check status
         run: |
           juju status
