@@ -57,7 +57,7 @@ jobs:
           name: "make charms"
           command: |
             make charms
-      - ruN:
+      - run:
           name: "Pull juju circleci user creds from s3"
           command: |
             aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
@@ -75,7 +75,7 @@ jobs:
       - save_cache:
           name: "Cache the built charms and .local/share/juju for the next workflow."
           key: slurm-charms-{{ .Environment.CIRCLE_SHA1 }}
-          paths:
+         paths:
             - slurm.resource
             - slurm-configurator.charm
             - slurmd.charm
