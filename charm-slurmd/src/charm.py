@@ -54,9 +54,6 @@ class SlurmdCharm(CharmBase):
 
             self._slurmd.on.slurm_config_available:
             self._on_check_status_and_write_config,
-
-            self.on.set_node_state_action:
-            self._on_node_state_action,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
