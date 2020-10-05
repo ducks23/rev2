@@ -1,0 +1,22 @@
+name: TestCharms
+  
+on: pull_request
+jobs:
+  build-charms:
+    name: "Release"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: lint
+        uses: actions/checkout@v1
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
+      - uses: actions/checkout@v1
+      - name: Install charmcraft
+        run: |
+          pip install charmcraft
+      - name: Build charms
+        run: |
+          make charms
+          ls -la
