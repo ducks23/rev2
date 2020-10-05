@@ -30,7 +30,7 @@ jobs:
         run: |
           aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
           tar -xzvf juju-local.tar.gz
-          echo "JUJU_DATA=/github/home/.local/share/juju" >> $GITHUB_ENV
+          echo "JUJU_DATA=/home/runner/work/rev2/rev2/.local/share/juju" >> $GITHUB_ENV
           pwd
       - name: contact controller
         run: |
