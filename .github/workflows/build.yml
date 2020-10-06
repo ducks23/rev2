@@ -88,15 +88,19 @@ jobs:
         run: |
           sleep 5m
       - name: slurmd-logs
+        if: ${{ always() }}
         run: |
           juju debug-log --replay --include slurmd > slurmd.txt
       - name: slurmdbd-logs
+        if: ${{ always() }}
         run: |
           juju debug-log --replay --include slurmdbd > slurmdbd.txt
       - name: slurmctld-logs
+        if: ${{ always() }}
         run: |
           juju debug-log --replay --include slurmctld > slurmctld.txt
       - name: slurm-configurator-logs
+        if: ${{ always() }}
         run: |
           juju debug-log --replay --include slurm-configurator > slurm-configurator.txt
       - name: check status
@@ -121,6 +125,7 @@ jobs:
         run: |
           juju destroy-model --force -y git-${{ steps.vars.outputs.sha_short }}-bionic
       - name: Upload Charms
+        if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
           name: slurm-charm-logs
