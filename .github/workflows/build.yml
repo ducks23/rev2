@@ -6,13 +6,6 @@ jobs:
     name: "build charms"
     runs-on: "ubuntu-latest"
     steps:
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
       - uses: actions/setup-python@v1
         with:
           python-version: '3.x'
@@ -71,14 +64,11 @@ jobs:
       - name: pull classic snap
         run: |
           wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource
-      - name: Declare some variables
+      - name: Store SHA
         id: vars
         shell: bash
         run: |
           echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
-      - name: Another step
-        run: |
-          echo "Sha: ${{ steps.vars.outputs.sha_short }}"
       - name: add model
         run: |
           juju add-model git-${{ steps.vars.outputs.sha_short }}-bionic
@@ -92,7 +82,6 @@ jobs:
       - name: Deploy Chamrs
         shell: bash
         run: |
-          ls -la
           make deploy-bionic
           make relate
       - name: wait
@@ -119,3 +108,78 @@ jobs:
         if: ${{ always() }}
         run: |
           juju destroy-model --force -y git-${{ steps.vars.outputs.sha_short }}-bionic
+  deploy-centos7:
+    name: "Deploy centos7"
+    needs: build-charms
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: lint
+        uses: actions/checkout@v1
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
+      - name: install juju
+        run: | 
+          sudo snap install juju --classic
+      - name: pull controller credentials
+        run: |
+          aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
+          tar -xzvf juju-local.tar.gz
+          echo "JUJU_DATA=/home/runner/work/rev2/rev2/.local/share/juju" >> $GITHUB_ENV
+      - name: contact controller
+        run: |
+          echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju login --user circleci
+      - name: pull classic snap
+        run: |
+          wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource
+      - name: Store SHA
+        id: vars
+        shell: bash
+        run: |
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+      - name: add model
+        run: |
+          juju add-model git-${{ steps.vars.outputs.sha_short }}-centos7
+          juju add-space -m git-${{ steps.vars.outputs.sha_short }}-centos7 nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
+          juju model-config logging-config="<root>=DEBUG;juju.worker.dependency=CRITICAL;unit=DEBUG"
+
+      - name: Download Built Charms
+        uses: actions/download-artifact@v2
+        with:
+          name: slurm-charms
+      - name: Deploy Chamrs
+        shell: bash
+        run: |
+          make deploy-centos7
+          make relate
+      - name: wait
+        run: |
+          sleep 5m
+      - name: check status
+        run: |
+          juju status
+      - name: cluster health
+        run: |
+          juju run "sinfo" --unit slurmd/0
+      - name: remove charms
+        if: ${{ always() }}
+        run: |
+          juju remove-application slurmctld
+          juju remove-application slurmdbd
+          juju remove-application slurmd
+          juju remove-application slurm-configurator
+          juju remove-application mysql
+      - name: check status
+        run: |
+          juju status
+      - name: delete model
+        if: ${{ always() }}
+        run: |
+          juju destroy-model --force -y git-${{ steps.vars.outputs.sha_short }}-centos7
