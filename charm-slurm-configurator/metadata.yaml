@@ -32,6 +32,11 @@ requires:
   influxdb-api:
     interface: influxdb-api
 
+provides:
+  grafana-source:
+    interface: grafana-source
+    scope: global
+
 resources:
   slurm:
     type: file

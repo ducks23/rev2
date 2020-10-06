@@ -5,6 +5,7 @@ import logging
 
 from interface_acct_gather import InfluxDB
 from interface_elasticsearch import Elasticsearch
+from interface_grafana_source import GrafanaSource
 from interface_nhc import Nhc
 from interface_slurmctld import Slurmctld
 from interface_slurmd import Slurmd
@@ -40,11 +41,10 @@ class SlurmConfiguratorCharm(CharmBase):
             slurmd_available=False,
         )
 
-        self._elasticsearch = Elasticsearch("elasticsearch")
-
-        self._influxdb = InfluxDB("influxdb-api")
-
-        self._nhc = Nhc("nhc")
+        self._elasticsearch = Elasticsearch(self, "elasticsearch")
+        self._grafana = GrafanaSource(self, "grafana-source")
+        self._influxdb = InfluxDB(self, "influxdb-api")
+        self._nhc = Nhc(self, "nhc")
 
         self._slurm_manager = SlurmManager(self, "slurmd")
 
@@ -78,10 +78,7 @@ class SlurmConfiguratorCharm(CharmBase):
             self._influxdb.on.influxdb_unavailable:
             self._on_check_status_and_write_config,
 
-            self._nhc.on.nhc_available:
-            self._on_check_status_and_write_config,
-
-            self._nhc.on.nhc_unavailable:
+            self._nhc.on.nhc_bin_available:
             self._on_check_status_and_write_config,
 
             # ######## Slurm component lifecycle events ######## #
@@ -115,7 +112,11 @@ class SlurmConfiguratorCharm(CharmBase):
 
     def _on_upgrade(self, event):
         """Upgrade the charm."""
-        self._slurm_manager.upgrade()
+        slurm_config = self._assemble_slurm_config()
+        if not slurm_config:
+            event.defer()
+            return
+        self._slurm_manager.upgrade(slurm_config)
 
     def _on_check_status_and_write_config(self, event):
         """Check that we have what we need before we proceed."""
@@ -154,10 +155,12 @@ class SlurmConfiguratorCharm(CharmBase):
         logger.debug(slurmdbd_info)
 
         return {
+            'munge_key': self._stored.munge_key,
             'partitions': partitions_info,
             **slurmctld_info,
             **slurmdbd_info,
             **addons_info,
+            **self.model.config,
         }
 
     def _assemble_partitions(self, slurmd_info):
@@ -183,6 +186,9 @@ class SlurmConfiguratorCharm(CharmBase):
 
         if acct_gather:
             ctxt['acct_gather'] = acct_gather
+            acct_gather_custom = self.model.config.get('acct_gather_custom')
+            if acct_gather_custom:
+                ctxt['acct_gather']['custom'] = acct_gather_custom
 
         if nhc_info:
             ctxt['nhc'] = {
@@ -223,6 +229,10 @@ class SlurmConfiguratorCharm(CharmBase):
         else:
             self.unit.status = ActiveStatus("")
             return True
+
+    def get_influxdb_info(self):
+        """Return influxdb info."""
+        return self._influxdb.get_influxdb_info()
 
     def get_munge_key(self):
         """Return the slurmdbd_info from stored state."""

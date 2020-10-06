@@ -39,9 +39,6 @@ class SlurmctldCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
 
-            self.on.config_changed:
-            self._on_check_status_and_write_config,
-
             self._slurmctld.on.slurm_config_available:
             self._on_check_status_and_write_config,
 
@@ -88,7 +85,6 @@ class SlurmctldCharm(CharmBase):
 
         self._slurm_manager.render_config_and_restart(
             {
-                **self.model.config,
                 **slurm_config,
                 'munge_key': munge_key
             }
