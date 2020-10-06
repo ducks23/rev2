@@ -9,11 +9,23 @@ clean: ## Remove .tox and build dirs
 	rm -rf venv/
 	rm -rf *.charm
 
+deploy-focal: ## deploy focal
+        @./scripts/deploy-focal.sh
+
+deploy-bionic: ## deploy bionic
+        @./scripts/deploy-bionic.sh
+
+deploy-centos7: ## deploy centos7
+        @./scripts/deploy-centos7.sh
+
+relate: ## deploy centos7
+        @./scripts/relate.sh
+
 charms: ## Build all charms
-	@charmcraft build --from charm-slurmd
-	@charmcraft build --from charm-slurm-configurator
-	@charmcraft build --from charm-slurmctld
-	@charmcraft build --from charm-slurmdbd
+        @charmcraft build --from charm-slurmd
+        @charmcraft build --from charm-slurm-configurator
+        @charmcraft build --from charm-slurmctld
+        @charmcraft build --from charm-slurmdbd
 
 # Display target comments in 'make help'
 help: 
