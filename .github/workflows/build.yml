@@ -13,8 +13,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
-      - name: lint
-        uses: actions/checkout@v1
       - uses: actions/setup-python@v1
         with:
           python-version: '3.x'
@@ -23,6 +21,9 @@ jobs:
       - name: Install charmcraft
         run: |
           pip install charmcraft
+      - name: Build charms
+        run: |
+          make lint
       - name: Build charms
         run: |
           make charms
@@ -37,10 +38,10 @@ jobs:
             slurm-configurator.charm
 
   deploy-bionic:
-    name: "build charms"
+    name: "Deploy bionic"
+    needs: build-charms
     runs-on: "ubuntu-latest"
     steps:
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -81,7 +82,7 @@ jobs:
           juju add-space -m git-${{ steps.vars.outputs.sha_short }}-bionic nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
           juju model-config logging-config="<root>=DEBUG;juju.worker.dependency=CRITICAL;unit=DEBUG"
 
-      - name: Download math result for job 2
+      - name: Download Built Charms
         uses: actions/download-artifact@v2
         with:
           name: slurm-charms
