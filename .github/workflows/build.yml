@@ -20,20 +20,9 @@ jobs:
           python-version: '3.x'
           architecture: 'x64'
       - uses: actions/checkout@v1
-      - name: install juju
-        run: | 
-          sudo snap install juju --classic
       - name: Install charmcraft
         run: |
           pip install charmcraft
-      - name: pull controller credentials
-        run: |
-          aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
-          tar -xzvf juju-local.tar.gz
-          echo "JUJU_DATA=/home/runner/work/rev2/rev2/.local/share/juju" >> $GITHUB_ENV
-      - name: contact controller
-        run: |
-          echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju login --user circleci
       - name: Build charms
         run: |
           make charms
@@ -64,6 +53,17 @@ jobs:
         with:
           python-version: '3.x'
           architecture: 'x64'
+      - name: install juju
+        run: | 
+          sudo snap install juju --classic
+      - name: pull controller credentials
+        run: |
+          aws s3 cp s3://omnivector-cicd/juju-local/juju-local.tar.gz .
+          tar -xzvf juju-local.tar.gz
+          echo "JUJU_DATA=/home/runner/work/rev2/rev2/.local/share/juju" >> $GITHUB_ENV
+      - name: contact controller
+        run: |
+          echo ${{secrets.JUJU_CIRCLECI_USER_PASSWORD}} | juju login --user circleci
       - name: pull classic snap
         run: |
           wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource
