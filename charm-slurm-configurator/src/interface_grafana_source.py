@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 """Grafana Source Interface."""
-import json
 import logging
 
 from ops.framework import (
