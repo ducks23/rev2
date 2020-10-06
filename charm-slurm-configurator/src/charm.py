@@ -78,11 +78,11 @@ class SlurmConfiguratorCharm(CharmBase):
             self._influxdb.on.influxdb_unavailable:
             self._on_check_status_and_write_config,
 
-            #self._nhc.on.nhc_available:
-            #self._on_check_status_and_write_config,
+            # self._nhc.on.nhc_available:
+            # self._on_check_status_and_write_config,
 
-#            self._nhc.on.nhc_unavailable:
- #           self._on_check_status_and_write_config,
+            # self._nhc.on.nhc_unavailable:
+            # self._on_check_status_and_write_config,
 
             # ######## Slurm component lifecycle events ######## #
             self._slurmctld.on.slurmctld_available:
@@ -203,7 +203,12 @@ class SlurmConfiguratorCharm(CharmBase):
         slurmd_available = self._stored.slurmd_available
         slurm_installed = self._stored.slurm_installed
 
-        logger.debug(f"slurmd: {slurmd_available} \nslurmctld: {slurmctld_available}  \nslurmdbd: {slurmdbd_available} \nslurm_installed: {slurm_installed}")
+        logger.debug(
+            f"""slurmd: {slurmd_available} \n
+            slurmctld: {slurmctld_available}\n
+            slurmdbd: {slurmdbd_available}\n
+            slurm_installed: {slurm_installed}"""
+        )
 
         deps = [
             slurmctld_available,

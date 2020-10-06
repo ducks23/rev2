@@ -126,7 +126,7 @@ class SlurmctldCharm(CharmBase):
     def get_port(self):
         """Return the port."""
         return self._slurm_manager.port
-    
+
 
 if __name__ == "__main__":
     main(SlurmctldCharm)
