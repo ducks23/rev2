@@ -21,7 +21,10 @@ jobs:
       - name: Install charmcraft
         run: |
           pip install charmcraft
-      - name: Build charms
+      - name: install tox
+        run: | 
+          pip install tox
+      - name: lint
         run: |
           make lint
       - name: Build charms
