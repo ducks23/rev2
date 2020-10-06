@@ -87,6 +87,18 @@ jobs:
       - name: wait
         run: |
           sleep 5m
+      - name: slurmd-logs
+        run: |
+          juju debug-log --replay --include slurmd > slurmd.txt
+      - name: slurmdbd-logs
+        run: |
+          juju debug-log --replay --include slurmdbd > slurmdbd.txt
+      - name: slurmctld-logs
+        run: |
+          juju debug-log --replay --include slurmctld > slurmctld.txt
+      - name: slurm-configurator-logs
+        run: |
+          juju debug-log --replay --include slurm-configurator > slurm-configurator.txt
       - name: check status
         run: |
           juju status
@@ -108,6 +120,16 @@ jobs:
         if: ${{ always() }}
         run: |
           juju destroy-model --force -y git-${{ steps.vars.outputs.sha_short }}-bionic
+      - name: Upload Charms
+        uses: actions/upload-artifact@v2
+        with:
+          name: slurm-charm-logs
+          path: |
+            slurmctld.txt
+            slurmdbd.txt
+            slurmd.txt
+            slurm-configurator.txt
+
   deploy-centos7:
     name: "Deploy centos7"
     needs: build-charms
