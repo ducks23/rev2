@@ -40,11 +40,11 @@ class SlurmConfiguratorCharm(CharmBase):
             slurmd_available=False,
         )
 
-        self._elasticsearch = Elasticsearch("elasticsearch")
+        self._elasticsearch = Elasticsearch(self, "elasticsearch")
 
-        self._influxdb = InfluxDB("influxdb-api")
+        self._influxdb = InfluxDB(self, "influxdb-api")
 
-        self._nhc = Nhc("nhc")
+        self._nhc = Nhc(self, "nhc")
 
         self._slurm_manager = SlurmManager(self, "slurmd")
 
@@ -78,11 +78,11 @@ class SlurmConfiguratorCharm(CharmBase):
             self._influxdb.on.influxdb_unavailable:
             self._on_check_status_and_write_config,
 
-            self._nhc.on.nhc_available:
-            self._on_check_status_and_write_config,
+            #self._nhc.on.nhc_available:
+            #self._on_check_status_and_write_config,
 
-            self._nhc.on.nhc_unavailable:
-            self._on_check_status_and_write_config,
+#            self._nhc.on.nhc_unavailable:
+ #           self._on_check_status_and_write_config,
 
             # ######## Slurm component lifecycle events ######## #
             self._slurmctld.on.slurmctld_available:
@@ -202,6 +202,8 @@ class SlurmConfiguratorCharm(CharmBase):
         slurmdbd_available = self._stored.slurmdbd_available
         slurmd_available = self._stored.slurmd_available
         slurm_installed = self._stored.slurm_installed
+
+        logger.debug(f"slurmd: {slurmd_available} \nslurmctld: {slurmctld_available}  \nslurmdbd: {slurmdbd_available} \nslurm_installed: {slurm_installed}")
 
         deps = [
             slurmctld_available,

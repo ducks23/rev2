@@ -97,10 +97,7 @@ class Slurmctld(Object):
 
     def _on_relation_broken(self, event):
         logger.debug("######## BROKEN ########")
-        if event.relation.data.get(event.unit):
-            logger.debug(event.relation.data[event.unit].__dict__)
         self.set_slurmctld_info_on_app_relation_data("")
-        self._charm.set_slurm_configurator_available(False)
         self.on.slurm_configurator_unavailable.emit()
 
     @property

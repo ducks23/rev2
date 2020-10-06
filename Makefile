@@ -18,6 +18,9 @@ deploy-bionic: ## deploy bionic
 deploy-centos7: ## deploy centos7
 	@./scripts/deploy-centos7.sh
 
+deploy-local: ## deploy lxd
+	@./scripts/deploy-local.sh
+
 relate: ## deploy centos7
 	@./scripts/relate.sh
 
