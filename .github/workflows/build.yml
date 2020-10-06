@@ -37,6 +37,33 @@ jobs:
       - name: Build charms
         run: |
           make charms
+      - name: Upload Charms
+        uses: actions/upload-artifact@v2
+        with:
+          name: slurm-charms
+          path: |
+            slurmctld.charm
+            slurmdbd.charm
+            slurmd.charm
+            slurm-configurator.charm
+
+  deploy-bionic:
+    name: "build charms"
+    runs-on: "ubuntu-latest"
+    steps:
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: lint
+        uses: actions/checkout@v1
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
       - name: pull classic snap
         run: |
           wget https://github.com/omnivector-solutions/snap-slurm/releases/download/20.02/slurm_20.02.1_amd64_classic.snap -O slurm.resource
@@ -53,8 +80,15 @@ jobs:
           juju add-model git-${{ steps.vars.outputs.sha_short }}-bionic
           juju add-space -m git-${{ steps.vars.outputs.sha_short }}-bionic nat 172.31.90.0/24 172.31.91.0/24 172.31.92.0/24 172.31.93.0/24
           juju model-config logging-config="<root>=DEBUG;juju.worker.dependency=CRITICAL;unit=DEBUG"
-      - name: deploy bionic charms
+
+      - name: Download math result for job 2
+        uses: actions/download-artifact@v2
+        with:
+          name: slurm-charms
+      - name: Deploy Chamrs
+        shell: bash
         run: |
+          ls -la
           make deploy-bionic
           make relate
       - name: wait
