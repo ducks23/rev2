@@ -10,6 +10,7 @@ from interface_nhc import Nhc
 from interface_slurmctld import Slurmctld
 from interface_slurmd import Slurmd
 from interface_slurmdbd import Slurmdbd
+from interface_slurmrestd import Slurmrestd
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -39,6 +40,7 @@ class SlurmConfiguratorCharm(CharmBase):
             slurmctld_available=False,
             slurmdbd_available=False,
             slurmd_available=False,
+            slurmrestd_available=False,
         )
 
         self._elasticsearch = Elasticsearch(self, "elasticsearch")
@@ -51,14 +53,12 @@ class SlurmConfiguratorCharm(CharmBase):
         self._slurmctld = Slurmctld(self, "slurmctld")
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
         self._slurmd = Slurmd(self, "slurmd")
+        self._slurmrestd = Slurmrestd(self, "slurmrestd")
 
         # #### Charm lifecycle events #### #
         event_handler_bindings = {
             # #### Juju lifecycle events #### #
             self.on.install: self._on_install,
-
-            # self.on.start:
-            # self._on_check_status_and_write_config,
 
             self.on.config_changed:
             self._on_check_status_and_write_config,
@@ -99,6 +99,12 @@ class SlurmConfiguratorCharm(CharmBase):
 
             self._slurmd.on.slurmd_unavailable:
             self._on_check_status_and_write_config,
+
+            self._slurmrestd.on.slurmrestd_available:
+            self._on_check_status_and_write_config,
+
+            self._slurmrestd.on.slurmrestd_unavailable:
+            self._on_check_status_and_write_config,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -136,6 +142,10 @@ class SlurmConfiguratorCharm(CharmBase):
         self._slurmd.set_slurm_config_on_app_relation_data(
             slurm_config,
         )
+        if self._stored.slurmrestd_available:
+            self._slurmrestd.set_slurm_config_on_app_relation_data(
+                slurm_config,
+            )
 
     def _assemble_slurm_config(self):
         """Assemble and return the slurm config."""
@@ -261,6 +271,10 @@ class SlurmConfiguratorCharm(CharmBase):
     def set_slurmd_available(self, slurmd_available):
         """Set slurmd_available."""
         self._stored.slurmd_available = slurmd_available
+
+    def set_slurmrestd_available(self, slurmrestd_available):
+        """Set slurmd_available."""
+        self._stored.slurmrestd_available = slurmrestd_available
 
 
 if __name__ == "__main__":
