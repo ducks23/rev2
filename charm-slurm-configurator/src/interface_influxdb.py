@@ -99,26 +99,32 @@ class InfluxDB(Object):
                         password,
                     )
 
+                    # Influxdb slurm user password
                     influx_slurm_password = random_string()
 
+                    # Only create the user and db if they don't already exist
                     users = [
                         db['user']
                         for db in client.get_list_users()
                     ]
                     if not self._INFLUX_USER in users:
-                        # Influxdb slurm user password
-    
-                        # Create the database, user, and add privilege
-                        client.create_database(self._INFLUX_DATABASE)
                         client.create_user(
                             self._INFLUX_DATABASE,
                             influx_slurm_password
                         )
-                        client.grant_privilege(
-                            self._INFLUX_PRIVILEGE,
-                            self._INFLUX_DATABASE,
-                            self._INFLUX_USER
-                        )
+
+                    databases = [
+                        db['name']
+                        for db in client.get_list_database()
+                    ]
+                    if not self._INFLUX_DATABASE in databases:
+                        client.create_database(self._INFLUX_DATABASE)
+
+                    client.grant_privilege(
+                        self._INFLUX_PRIVILEGE,
+                        self._INFLUX_DATABASE,
+                        self._INFLUX_USER
+                    )
     
                     # Set the influxdb info
                     self._stored.influxdb_info = json.dumps(
