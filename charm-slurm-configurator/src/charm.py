@@ -122,18 +122,18 @@ class SlurmConfiguratorCharm(CharmBase):
         self._slurm_manager.upgrade(slurm_config)
 
     def _on_grafana_available(self, event):
-        """Create the grafana-source if we are the leader and have influxdb"""
-        leader = self.framework.model.unit.is_leader()
-        influxdb_info = self._influxdb.get_influxdb_info()
+        """Create the grafana-source if we are the leader and have influxdb."""
+        leader = self._is_leader()
+        influxdb_info = self._get_influxdb_info()
 
         if leader and influxdb_info:
             grafana.set_grafana_source_info(influxdb_info)
 
     def _on_influxdb_available(self, event):
-        """Create the grafana-source if we are the leader."""
-        leader = self.framework.model.unit.is_leader()
+        """Create the grafana-source if we have all the things."""
         grafana = self._grafana
-        influxdb_info = self._influxdb.get_influxdb_info()
+        influxdb_info = self._get_influxdb_info()
+        leader = self._is_leader()
 
         if leader and grafana.is_joined and influxdb_info:
             grafana.set_grafana_source_info(influxdb_info)
@@ -200,7 +200,7 @@ class SlurmConfiguratorCharm(CharmBase):
 
     def _assemble_addons(self):
         """Assemble any addon components."""
-        acct_gather = self._influxdb.get_influxdb_info()
+        acct_gather = self._get_influxdb_info()
         elasticsearch_ingress = self._elasticsearch.get_elasticsearch_ingress()
         nhc_info = self._nhc.get_nhc_info()
 
@@ -252,7 +252,7 @@ class SlurmConfiguratorCharm(CharmBase):
             self.unit.status = ActiveStatus("")
             return True
 
-    def get_influxdb_info(self):
+    def _get_influxdb_info(self):
         """Return influxdb info."""
         return self._influxdb.get_influxdb_info()
 
@@ -263,6 +263,9 @@ class SlurmConfiguratorCharm(CharmBase):
     def get_default_partition(self):
         """Return self._stored.default_partition."""
         return self._stored.default_partition
+
+    def _is_leader(self):
+        return self.model.unit.is_leader()
 
     def is_slurm_installed(self):
         """Return true/false based on whether or not slurm is installed."""
