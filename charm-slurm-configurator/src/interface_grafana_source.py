@@ -47,9 +47,23 @@ class GrafanaSource(Object):
             self._on_relation_joined
         )
 
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_broken,
+            self._on_relation_broken
+        )
+
     def _on_relation_joined(self, event):
         if self.framework.model.unit.is_leader():
             self.on.grafana_available.emit()
+
+    def _on_relation_broken(self, event):
+        if self.framework.model.unit.is_leader():
+            app_relation_data = self._relation.data[self.model.app]
+            app_relation_data['url'] = ""
+            app_relation_data['username'] = ""
+            app_relation_data['password'] = ""
+            app_relation_data['database'] = ""
+            self._stored.grafana_source_created = False
 
     @property
     def _relation(self):
