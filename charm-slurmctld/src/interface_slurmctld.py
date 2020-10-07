@@ -89,6 +89,7 @@ class Slurmctld(Object):
         if not slurm_config:
             event.defer()
             return
+        self._charm.set_slurm_configurator_available(True)
         self.on.slurm_config_available.emit()
 
     def _on_relation_departed(self, event):

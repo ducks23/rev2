@@ -29,6 +29,7 @@ class SlurmctldCharm(CharmBase):
         self._stored.set_default(
             munge_key=str(),
             slurmctld_controller_type=str(),
+            slurm_configurator_available=False,
         )
 
         self._slurm_manager = SlurmManager(self, "slurmctld")
@@ -122,6 +123,9 @@ class SlurmctldCharm(CharmBase):
     def get_port(self):
         """Return the port."""
         return self._slurm_manager.port
+    
+    def set_slurm_configurator_available(boolean):
+        self._stored.slurm_configurator_available = boolean
 
 
 if __name__ == "__main__":
