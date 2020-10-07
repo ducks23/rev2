@@ -18,12 +18,16 @@ deploy-bionic: ## deploy bionic
 deploy-centos7: ## deploy centos7
 	@./scripts/deploy-centos7.sh
 
+deploy-local: ## deploy on lxd
+	@./scripts/deploy-local.sh
+
 relate: ## deploy centos7
 	@./scripts/relate.sh
 
 
 charms: ## Build all charms
 	@charmcraft build --from charm-slurmd
+	@charmcraft build --from charm-slurmrestd
 	@charmcraft build --from charm-slurm-configurator
 	@charmcraft build --from charm-slurmctld
 	@charmcraft build --from charm-slurmdbd

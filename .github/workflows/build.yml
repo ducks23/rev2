@@ -87,6 +87,10 @@ jobs:
       - name: wait
         run: |
           sleep 5m
+      - name: slurmrestd-logs
+        if: ${{ always() }}
+        run: |
+          juju debug-log --replay --include slurmrestd > slurmrestd.txt
       - name: slurmd-logs
         if: ${{ always() }}
         run: |
