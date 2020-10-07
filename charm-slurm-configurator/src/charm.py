@@ -116,12 +116,14 @@ class SlurmConfiguratorCharm(CharmBase):
     def _on_upgrade(self, event):
         """Upgrade the charm."""
         slurm_config = self._assemble_slurm_config()
+
         if not slurm_config:
             self.unit.status = BlockedStatus(
                 "Cannot generate slurm_config, defering upgrade."
             )
             event.defer()
             return
+
         self._slurm_manager.upgrade(slurm_config)
 
     def _on_grafana_available(self, event):
@@ -150,10 +152,12 @@ class SlurmConfiguratorCharm(CharmBase):
             event.defer()
             return
 
+        # Generate the slurm_config
         slurm_config = self._assemble_slurm_config()
+
         if not slurm_config:
             self.unit.status = BlockedStatus(
-                "Cannot generate slurm_config, defering upgrade."
+                "Cannot generate slurm_config - defering event."
             )
             event.defer()
             return
