@@ -138,7 +138,7 @@ class SlurmConfiguratorCharm(CharmBase):
         if leader and grafana.is_joined and influxdb_info:
             grafana.set_grafana_source_info(influxdb_info)
 
-        _on_check_status_and_write_config(event)
+        self._on_check_status_and_write_config(event)
 
     def _on_check_status_and_write_config(self, event):
         """Check that we have what we need before we proceed."""
