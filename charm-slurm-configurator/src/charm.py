@@ -3,7 +3,7 @@
 import copy
 import logging
 
-from interface_acct_gather import InfluxDB
+from interface_influxdb import InfluxDB
 from interface_elasticsearch import Elasticsearch
 from interface_grafana_source import GrafanaSource
 from interface_nhc import Nhc
@@ -72,8 +72,11 @@ class SlurmConfiguratorCharm(CharmBase):
             self._elasticsearch.on.elasticsearch_unavailable:
             self._on_check_status_and_write_config,
 
+            self._grafana.on.grafana_available:
+            self._on_grafana_available,
+
             self._influxdb.on.influxdb_available:
-            self._on_check_status_and_write_config,
+            self._on_influxdb_available,
 
             self._influxdb.on.influxdb_unavailable:
             self._on_check_status_and_write_config,
@@ -117,6 +120,25 @@ class SlurmConfiguratorCharm(CharmBase):
             event.defer()
             return
         self._slurm_manager.upgrade(slurm_config)
+
+    def _on_grafana_available(self, event):
+        """Create the grafana-source if we are the leader and have influxdb"""
+        leader = self.framework.model.unit.is_leader()
+        influxdb_info = self._influxdb.get_influxdb_info()
+
+        if leader and influxdb_info:
+            grafana.set_grafana_source_info(influxdb_info)
+
+    def _on_influxdb_available(self, event):
+        """Create the grafana-source if we are the leader."""
+        leader = self.framework.model.unit.is_leader()
+        grafana = self._grafana
+        influxdb_info = self._influxdb.get_influxdb_info()
+
+        if leader and grafana.is_joined and influxdb_info:
+            grafana.set_grafana_source_info(influxdb_info)
+
+        _on_check_status_and_write_config(event)
 
     def _on_check_status_and_write_config(self, event):
         """Check that we have what we need before we proceed."""

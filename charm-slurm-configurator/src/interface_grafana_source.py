@@ -49,14 +49,7 @@ class GrafanaSource(Object):
 
     def _on_relation_joined(self, event):
         if self.framework.model.unit.is_leader():
-            influxdb = self._charm.get_influxdb_info()
-            if not influxdb:
-                self._charm.unit.status = BlockedStatus(
-                    "Need relation to influxdb."
-                )
-                event.defer()
-                return
-            self._set_grafana_source_info(influxdb)
+            self.on.grafana_available.emit()
 
     @property
     def _relation(self):
@@ -67,7 +60,7 @@ class GrafanaSource(Object):
         """Return True if self._relation is not None."""
         return self._relation is not None
 
-    def _set_grafana_source_info(self, influxdb):
+    def set_grafana_source_info(self, influxdb):
         """Set grafana source info on relation."""
         if self.framework.model.unit.is_leader():
             app_relation_data = self._relation.data[self.model.app]
