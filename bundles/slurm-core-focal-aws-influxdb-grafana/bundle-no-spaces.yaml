@@ -1,0 +1,55 @@
+applications:
+  grafana:
+    charm: cs:grafana
+    constraints: root-disk=20G instance-type=t3a.medium
+    series: focal
+    num_units: 1
+  influxdb:
+    charm: cs:influxdb
+    constraints: root-disk=20G instance-type=t3a.medium
+    series: focal
+    num_units: 1
+  slurm-configurator:
+    charm: ./../../slurm-configurator.charm
+    constraints: root-disk=20G instance-type=t3a.medium
+    series: focal
+    num_units: 1
+  slurmctld:
+    charm: ./../../slurmctld.charm
+    constraints: root-disk=20G instance-type=t3a.medium
+    series: focal
+    num_units: 1
+  slurmd:
+    charm: ./../../slurmd.charm
+    constraints: root-disk=20G instance-type=t3a.medium
+    series: focal
+    num_units: 1
+  slurmdbd:
+    charm: ./../../slurmdbd.charm
+    constraints: root-disk=20G instance-type=t3a.medium
+    series: focal
+    num_units: 1
+  percona-cluster:
+    charm: cs:percona-cluster
+    constraints: root-disk=20G instance-type=t3a.medium
+    series: bionic
+    num_units: 1
+
+relations:
+  - - slurm-configurator:influxdb-api
+    - influxdb:query
+
+  - - slurm-configurator:grafana-source
+    - grafana:grafana-source
+
+  - - slurm-configurator:slurmctld
+    - slurmctld:slurmctld
+
+  - - slurm-configurator:slurmd
+    - slurmd:slurmd
+
+  - - slurm-configurator:slurmdbd
+    - slurmdbd:slurmdbd
+
+  - - slurmdbd:db
+    - percona-cluster:db
