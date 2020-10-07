@@ -93,7 +93,6 @@ class Slurmctld(Object):
 
     def _on_relation_departed(self, event):
         logger.debug("######## DEPARTED ########")
-        logger.debug(event.relation.data[event.unit].__dict__)
 
     def _on_relation_broken(self, event):
         logger.debug("######## BROKEN ########")
