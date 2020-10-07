@@ -123,8 +123,9 @@ class SlurmctldCharm(CharmBase):
     def get_port(self):
         """Return the port."""
         return self._slurm_manager.port
-    
-    def set_slurm_configurator_available(boolean):
+
+    def set_slurm_configurator_available(self, boolean):
+        """Set configurator status."""
         self._stored.slurm_configurator_available = boolean
 
 
