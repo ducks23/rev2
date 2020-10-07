@@ -3,9 +3,9 @@
 import copy
 import logging
 
-from interface_influxdb import InfluxDB
 from interface_elasticsearch import Elasticsearch
 from interface_grafana_source import GrafanaSource
+from interface_influxdb import InfluxDB
 from interface_nhc import Nhc
 from interface_slurmctld import Slurmctld
 from interface_slurmd import Slurmd
@@ -125,6 +125,7 @@ class SlurmConfiguratorCharm(CharmBase):
         """Create the grafana-source if we are the leader and have influxdb."""
         leader = self._is_leader()
         influxdb_info = self._get_influxdb_info()
+        grafana = self._grafana
 
         if leader and influxdb_info:
             grafana.set_grafana_source_info(influxdb_info)

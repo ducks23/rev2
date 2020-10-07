@@ -107,7 +107,7 @@ class InfluxDB(Object):
                         db['user']
                         for db in client.get_list_users()
                     ]
-                    if not self._INFLUX_USER in users:
+                    if self._INFLUX_USER not in users:
                         client.create_user(
                             self._INFLUX_DATABASE,
                             influx_slurm_password
@@ -117,7 +117,7 @@ class InfluxDB(Object):
                         db['name']
                         for db in client.get_list_database()
                     ]
-                    if not self._INFLUX_DATABASE in databases:
+                    if self._INFLUX_DATABASE not in databases:
                         client.create_database(self._INFLUX_DATABASE)
 
                     client.grant_privilege(
@@ -125,8 +125,8 @@ class InfluxDB(Object):
                         self._INFLUX_DATABASE,
                         self._INFLUX_USER
                     )
-    
-                    # Set the influxdb info
+
+                    # Dump influxdb_info to json and set it to state
                     self._stored.influxdb_info = json.dumps(
                         {
                             'ingress': ingress,
