@@ -117,6 +117,9 @@ class SlurmConfiguratorCharm(CharmBase):
         """Upgrade the charm."""
         slurm_config = self._assemble_slurm_config()
         if not slurm_config:
+            self.unit.status = BlockedStatus(
+                "Cannot generate slurm_config, defering upgrade."
+            )
             event.defer()
             return
         self._slurm_manager.upgrade(slurm_config)
@@ -149,6 +152,9 @@ class SlurmConfiguratorCharm(CharmBase):
 
         slurm_config = self._assemble_slurm_config()
         if not slurm_config:
+            self.unit.status = BlockedStatus(
+                "Cannot generate slurm_config, defering upgrade."
+            )
             event.defer()
             return
 
