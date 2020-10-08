@@ -19,6 +19,9 @@ series:
 provides:
   slurmctld:
     interface: slurmctld
+  nrpe-external-master:
+    interface: nrpe-external-master
+    scope: container
 
 peers:
   slurmctld-peer:

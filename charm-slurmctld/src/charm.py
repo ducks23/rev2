@@ -4,6 +4,7 @@ import logging
 
 from interface_slurmctld import Slurmctld
 from interface_slurmctld_peer import SlurmctldPeer
+from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -31,6 +32,8 @@ class SlurmctldCharm(CharmBase):
             slurmctld_controller_type=str(),
         )
 
+        self._nrpe = Nrpe(self, "nrpe-external-master")
+
         self._slurm_manager = SlurmManager(self, "slurmctld")
 
         self._slurmctld = Slurmctld(self, "slurmctld")
@@ -44,6 +47,9 @@ class SlurmctldCharm(CharmBase):
 
             self._slurmctld_peer.on.slurmctld_peer_available:
             self._on_slurmctld_peer_available,
+
+            self._nrpe.on.nrpe_external_master_available:
+            self._on_nrpe_available,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -55,6 +61,23 @@ class SlurmctldCharm(CharmBase):
 
     def _on_upgrade(self, event):
         self._slurm_manager.upgrade()
+
+    def _on_nrpe_available(self, event):
+        conf = self.model.config
+
+        slurmctld_process_check_args = [
+            '/usr/lib/nagios/plugins/check_procs',
+            '-c', '1:', '-a', self._slurm_manager.slurm_systemd_service,
+        ]
+
+        self._nrpe.add_check(**{
+            'args': slurmctld_process_check_args,
+            'name': "slurmctld",
+            'description': "Check for slurmctld process.",
+            'context': conf.get('nagios_context'),
+            'servicegroups': conf.get('nagios_servicegroups'),
+            'unit': self.model.unit,
+        })
 
     def _on_slurmctld_peer_available(self, event):
         if self.framework.model.unit.is_leader():
