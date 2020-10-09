@@ -79,21 +79,15 @@ class Slurmctld(Object):
             event.defer()
             return
 
-        munge_key = event_app_data.get('munge_key')
-        if not munge_key:
-            event.defer()
-            return
-        self._charm.set_munge_key(munge_key)
-
         slurm_config = event_app_data.get('slurm_config')
         if not slurm_config:
             event.defer()
             return
+        self._charm.set_slurm_configurator_available(True)
         self.on.slurm_config_available.emit()
 
     def _on_relation_departed(self, event):
         logger.debug("######## DEPARTED ########")
-        logger.debug(event.relation.data[event.unit].__dict__)
 
     def _on_relation_broken(self, event):
         logger.debug("######## BROKEN ########")

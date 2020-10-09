@@ -30,9 +30,9 @@ class SlurmdCharm(CharmBase):
         super().__init__(*args)
 
         self._stored.set_default(
-            munge_key=str(),
             user_node_state=str(),
             partition_name=str(),
+            config_available=False,
         )
 
         self._nrpe = Nrpe(self, "nrpe-external-master")
@@ -45,9 +45,6 @@ class SlurmdCharm(CharmBase):
         event_handler_bindings = {
             self.on.install: self._on_install,
             self.on.upgrade_charm: self._on_upgrade,
-
-            self.on.start:
-            self._on_check_status_and_write_config,
 
             self.on.config_changed:
             self._on_send_slurmd_info,
@@ -97,38 +94,18 @@ class SlurmdCharm(CharmBase):
         if not self._check_status():
             event.defer()
             return
-
-        slurm_config = self._slurmd.get_slurm_config()
-        if not slurm_config:
-            event.defer()
-            return
-
-        munge_key = self._stored.munge_key
-        if not munge_key:
-            event.defer()
-            return
-
-        self._slurm_manager.render_config_and_restart(
-            {**slurm_config, 'munge_key': munge_key}
-        )
+        slurm_config = dict(self._slurmd.get_slurm_config())
+        self._slurm_manager.render_config_and_restart(slurm_config)
         self.unit.status = ActiveStatus("Slurmd Available")
 
     def _check_status(self):
-        munge_key = self._stored.munge_key
         slurm_installed = self._stored.slurm_installed
-        slurm_config_available = self._slurmd.get_slurm_config()
+        config_available = self._stored.config_available
 
-        if not (munge_key and slurm_installed and slurm_config_available):
-            if not munge_key:
-                self.unit.status = BlockedStatus(
+        if not (slurm_installed and config_available):
+            self.unit.status = BlockedStatus(
                     "NEED RELATION TO SLURM CONFIGURATOR"
                 )
-            elif not slurm_config_available:
-                self.unit.status = BlockedStatus(
-                    "WAITING ON SLURM CONFIG"
-                )
-            else:
-                self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
             return False
         else:
             return True

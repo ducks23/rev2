@@ -53,13 +53,12 @@ class Slurmd(Object):
         if not event_app_data:
             event.defer()
             return
-        # Get the munge_key from slurm-configurator
-        munge_key = event_app_data.get('munge_key')
-        if not munge_key:
+        slurm_config = event_app_data.get('slurm_config')
+        if not slurm_conifg:
             event.defer()
             return
-        # Store the munge_key in the charm's state
-        self._charm.set_munge_key(munge_key)
+
+        self._charm._stored.config_available = True
         self.on.slurm_config_available.emit()
 
     @property
