@@ -54,7 +54,8 @@ class Slurmd(Object):
             event.defer()
             return
         slurm_config = event_app_data.get('slurm_config')
-        if not slurm_conifg:
+        
+        if not slurm_config:
             event.defer()
             return
 

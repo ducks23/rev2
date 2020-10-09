@@ -76,7 +76,7 @@ class SlurmLoginCharm(CharmBase):
 
     def set_config_available(self, boolean):
         """Set self._stored.slurmctld_available."""
-        self._stored.slurmctld_available = boolean
+        self._stored.config_available = boolean
 
 
 if __name__ == "__main__":
