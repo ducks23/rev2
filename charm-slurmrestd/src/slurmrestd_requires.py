@@ -55,19 +55,13 @@ class SlurmrestdRequires(Object):
         if not event_app_data:
             event.defer()
             return
-        # Get the munge_key from slurm-configurator
-        munge_key = event_app_data.get('munge_key')
-        if not munge_key:
-            event.defer()
-            return
         # Store the munge_key in the charm's state
-        self.charm.set_slurmrestd_available(True)
-        self._charm.set_munge_key(munge_key)
+        self.charm.set_config_available(True)
         self.on.config_available.emit()
 
     def _on_relation_broken(self, event):
-        self.charm.set_slurmrestd_available(False)
-        self.on.slurmctld_unavailable.emit()
+        self.charm.set_config_available(False)
+        self.on.config_available.emit()
 
     def get_slurm_config(self):
         """Return slurm_config."""

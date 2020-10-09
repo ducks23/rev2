@@ -79,12 +79,6 @@ class Slurmctld(Object):
             event.defer()
             return
 
-        munge_key = event_app_data.get('munge_key')
-        if not munge_key:
-            event.defer()
-            return
-        self._charm.set_munge_key(munge_key)
-
         slurm_config = event_app_data.get('slurm_config')
         if not slurm_config:
             event.defer()

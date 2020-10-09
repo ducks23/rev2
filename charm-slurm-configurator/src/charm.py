@@ -258,6 +258,8 @@ class SlurmConfiguratorCharm(CharmBase):
             slurmd_available,
             slurm_installed,
         ]
+        logger.debug("############### DEPS #####################")
+        logger.debug(deps)
 
         if not all(deps):
             if not slurmctld_available:
