@@ -47,9 +47,6 @@ class SlurmctldCharm(CharmBase):
 
             self._slurmctld_peer.on.slurmctld_peer_available:
             self._on_slurmctld_peer_available,
-
-            self._nrpe.on.nrpe_external_master_available:
-            self._on_nrpe_available,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -61,23 +58,6 @@ class SlurmctldCharm(CharmBase):
 
     def _on_upgrade(self, event):
         self._slurm_manager.upgrade()
-
-    def _on_nrpe_available(self, event):
-        conf = self.model.config
-
-        slurmctld_process_check_args = [
-            '/usr/lib/nagios/plugins/check_procs',
-            '-c', '1:', '-a', self._slurm_manager.slurm_systemd_service,
-        ]
-
-        self._nrpe.add_check(**{
-            'args': slurmctld_process_check_args,
-            'name': "slurmctld",
-            'description': "Check for slurmctld process.",
-            'context': conf.get('nagios_context'),
-            'servicegroups': conf.get('nagios_servicegroups'),
-            'unit': self.model.unit,
-        })
 
     def _on_slurmctld_peer_available(self, event):
         if self.framework.model.unit.is_leader():
@@ -137,6 +117,9 @@ class SlurmctldCharm(CharmBase):
     def set_munge_key(self, munge_key):
         """Set the munge_key in _stored state."""
         self._stored.munge_key = munge_key
+
+    def get_slurm_component(self):
+        return self._slurm_manager.slurm_component
 
     def get_hostname(self):
         """Return the hostname."""

@@ -52,9 +52,6 @@ class SlurmdbdCharm(CharmBase):
 
             self._slurmdbd.on.slurmdbd_unavailable:
             self._on_slurmdbd_unavailable,
-
-            self._nrpe.on.nrpe_external_master_available:
-            self._on_nrpe_available,
         }
         for event, handler in event_handler_bindings.items():
             self.framework.observe(event, handler)
@@ -70,23 +67,6 @@ class SlurmdbdCharm(CharmBase):
 
     def _on_leader_elected(self, event):
         self._slurmdbd_peer._on_relation_changed(event)
-
-    def _on_nrpe_available(self, event):
-        conf = self.model.config
-
-        slurmdbd_process_check_args = [
-            '/usr/lib/nagios/plugins/check_procs',
-            '-c', '1:', '-a', self._slurm_manager.slurm_systemd_service,
-        ]
-
-        self._nrpe.add_check(**{
-            'args': slurmdbd_process_check_args,
-            'name': "slurmdbd",
-            'description': "Check for slurmdbd process.",
-            'context': conf.get('nagios_context'),
-            'servicegroups': conf.get('nagios_servicegroups'),
-            'unit': self.model.unit,
-        })
 
     def _on_slurmdbd_unavailable(self, event):
         self._check_status()
@@ -146,6 +126,9 @@ class SlurmdbdCharm(CharmBase):
     def get_hostname(self):
         """Return the hostname from slurm-ops-manager."""
         return self._slurm_manager.hostname
+
+    def get_slurm_component(self):
+        return self._slurm_manager.slurm_component
 
     def set_munge_key(self, munge_key):
         """Set the munge key in the stored state."""
