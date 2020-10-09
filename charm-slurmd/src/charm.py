@@ -91,7 +91,7 @@ class SlurmdCharm(CharmBase):
         if not self._check_status():
             event.defer()
             return
-        slurm_config = self._slurmd.get_slurm_config()
+        slurm_config = dict(self._slurmd.get_slurm_config())
         self._slurm_manager.render_config_and_restart(slurm_config)
         self.unit.status = ActiveStatus("Slurmd Available")
 

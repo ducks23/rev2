@@ -49,6 +49,15 @@ class Slurmd(Object):
 
     def _on_relation_changed(self, event):
         """Check for the munge_key in the relation data."""
+        event_app_data = event.relation.data.get(event.app)
+        if not event_app_data:
+            event.defer()
+            return
+        slurm_config = event_app_data.get('slurm_config')
+        if not slurm_conifg:
+            event.defer()
+            return
+
         self._charm._stored.config_available = True
         self.on.slurm_config_available.emit()
 

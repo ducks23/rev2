@@ -52,7 +52,6 @@ class SlurmctldCharm(CharmBase):
     def _on_install(self, event):
         self._slurm_manager.install()
         self._stored.slurm_installed = True
-        self.unit.status = ActiveStatus("Slurm Installed")
 
     def _on_upgrade(self, event):
         self._slurm_manager.upgrade()
@@ -75,14 +74,7 @@ class SlurmctldCharm(CharmBase):
             return
 
         slurm_config = self._slurmctld.get_slurm_config_from_relation()
-        if not slurm_config:
-            event.defer()
-            return
-
         munge_key = self._stored.munge_key
-        if not munge_key:
-            event.defer()
-            return
 
         self._slurm_manager.render_config_and_restart(
             {
@@ -93,28 +85,16 @@ class SlurmctldCharm(CharmBase):
         self.unit.status = ActiveStatus("Slurmctld Available")
 
     def _check_status(self):
-        munge_key = self._stored.munge_key
         slurm_installed = self._stored.slurm_installed
-        slurm_config = self._slurmctld.get_slurm_config_from_relation()
+        slurm_config = self._stored.slurm_configurator_available
 
-        if not (munge_key and slurm_installed and slurm_config):
-            if not munge_key:
-                self.unit.status = BlockedStatus(
-                    "NEED RELATION TO SLURM CONFIGURATOR"
-                )
-            elif not slurm_config:
-                self.unit.status = BlockedStatus(
-                    "WAITING ON SLURM CONFIG"
-                )
-            else:
-                self.unit.status = BlockedStatus("SLURM NOT INSTALLED")
+        if not (slurm_installed and slurm_config):
+            self.unit.status = BlockedStatus(
+                "NEED RELATION TO SLURM CONFIGURATOR"
+            )
             return False
         else:
             return True
-
-    def set_munge_key(self, munge_key):
-        """Set the munge_key in _stored state."""
-        self._stored.munge_key = munge_key
 
     def get_hostname(self):
         """Return the hostname."""

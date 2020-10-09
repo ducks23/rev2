@@ -57,8 +57,8 @@ class SlurmLoginCharm(CharmBase):
 
     def _on_check_status_and_write_config(self, event):
         slurm_installed = self._stored.slurm_installed
-        slurm_config = self._stored.slurm_config
-
+        slurm_config = self._stored.config_available
+        logger.debug("##### inside check status and write config ######")
         if not (slurm_installed and slurm_config):
             if not slurm_config:
                 self.unit.status = BlockedStatus(
@@ -69,6 +69,7 @@ class SlurmLoginCharm(CharmBase):
             event.defer()
             return
         else:
+            logger.debug("##### STATUS CONFIRMED ######")
             config = self._slurmrestd.get_slurm_config()
             self.slurm_manager.render_config_and_restart(config)
             self.unit.status = ActiveStatus("Slurmrestd Available")
