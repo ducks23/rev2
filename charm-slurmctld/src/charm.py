@@ -99,17 +99,10 @@ class SlurmctldCharm(CharmBase):
         else:
             return True
 
-<<<<<<< HEAD
-    def set_munge_key(self, munge_key):
-        """Set the munge_key in _stored state."""
-        self._stored.munge_key = munge_key
-
     def get_slurm_component(self):
         """Return the slurm component."""
         return self._slurm_manager.slurm_component
 
-=======
->>>>>>> working?
     def get_hostname(self):
         """Return the hostname."""
         return self._slurm_manager.hostname
