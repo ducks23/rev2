@@ -39,7 +39,9 @@ class SlurmrestdRequires(Object):
         """Set the provides initial data."""
         super().__init__(charm, relation_name)
         self.charm = charm
+
         self._relation_name = relation_name
+
 
         self.framework.observe(
             charm.on[relation_name].relation_changed,
@@ -56,10 +58,12 @@ class SlurmrestdRequires(Object):
         if not event_app_data:
             event.defer()
             return
+
         slurm_config = event_app_data.get('slurm_config')
         if not slurm_config:
             event.defer()
             return
+
         self.charm.set_config_available(True)
         self.on.config_available.emit()
 

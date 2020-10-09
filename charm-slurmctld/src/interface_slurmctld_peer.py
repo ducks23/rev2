@@ -47,6 +47,11 @@ class SlurmctldPeer(Object):
             self._on_relation_changed
         )
 
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_departed,
+            self._on_relation_departed
+        )
+
     def _on_relation_created(self, event):
         """Set hostname and port on the unit data."""
         logger.debug("########  RELATION CREATED #########")
@@ -160,6 +165,9 @@ class SlurmctldPeer(Object):
             app_relation_data['slurmctld_info'] = json.dumps(ctxt)
             logger.debug("EMMITTING SLURMCTLD_PEER_AVAILABLE")
             self.on.slurmctld_peer_available.emit()
+
+    def _on_relation_departed(self, event):
+        self.on.slurmctld_peer_available.emit()
 
     @property
     def _relation(self):

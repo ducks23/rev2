@@ -3,6 +3,7 @@
 from interface_mysql import MySQLClient
 from interface_slurmdbd import Slurmdbd
 from interface_slurmdbd_peer import SlurmdbdPeer
+from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -26,6 +27,8 @@ class SlurmdbdCharm(CharmBase):
         self._stored.set_default(db_info=dict())
         self._stored.set_default(slurm_installed=False)
 
+        self._nrpe = Nrpe(self, "nrpe-external-master")
+
         self._slurm_manager = SlurmManager(self, "slurmdbd")
 
         self._slurmdbd = Slurmdbd(self, "slurmdbd")
@@ -35,13 +38,18 @@ class SlurmdbdCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
+
             self.on.config_changed: self._write_config_and_restart_slurmdbd,
+
             self._db.on.database_available:
             self._write_config_and_restart_slurmdbd,
+
             self._slurmdbd_peer.on.slurmdbd_peer_available:
             self._write_config_and_restart_slurmdbd,
+
             self._slurmdbd.on.slurmdbd_available:
             self._write_config_and_restart_slurmdbd,
+
             self._slurmdbd.on.slurmdbd_unavailable:
             self._on_slurmdbd_unavailable,
         }
@@ -118,6 +126,10 @@ class SlurmdbdCharm(CharmBase):
     def get_hostname(self):
         """Return the hostname from slurm-ops-manager."""
         return self._slurm_manager.hostname
+
+    def get_slurm_component(self):
+        """Return the slurm component."""
+        return self._slurm_manager.slurm_component
 
     def set_munge_key(self, munge_key):
         """Set the munge key in the stored state."""

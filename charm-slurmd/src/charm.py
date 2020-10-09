@@ -5,6 +5,7 @@ import logging
 
 from interface_slurmd import Slurmd
 from interface_slurmd_peer import SlurmdPeer
+from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -33,6 +34,8 @@ class SlurmdCharm(CharmBase):
             partition_name=str(),
             config_available=False,
         )
+
+        self._nrpe = Nrpe(self, "nrpe-external-master")
 
         self._slurm_manager = SlurmManager(self, "slurmd")
 
@@ -175,6 +178,10 @@ class SlurmdCharm(CharmBase):
     def set_munge_key(self, munge_key):
         """Set the munge key."""
         self._stored.munge_key = munge_key
+
+    def get_slurm_component(self):
+        """Return the slurm component."""
+        return self._slurm_manager.slurm_component
 
     def get_hostname(self):
         """Return the hostname."""

@@ -4,6 +4,7 @@ import logging
 
 from interface_slurmctld import Slurmctld
 from interface_slurmctld_peer import SlurmctldPeer
+from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -31,6 +32,8 @@ class SlurmctldCharm(CharmBase):
             slurmctld_controller_type=str(),
             slurm_configurator_available=False,
         )
+
+        self._nrpe = Nrpe(self, "nrpe-external-master")
 
         self._slurm_manager = SlurmManager(self, "slurmctld")
 
@@ -95,6 +98,10 @@ class SlurmctldCharm(CharmBase):
             return False
         else:
             return True
+
+    def get_slurm_component(self):
+        """Return the slurm component."""
+        return self._slurm_manager.slurm_component
 
     def get_hostname(self):
         """Return the hostname."""
