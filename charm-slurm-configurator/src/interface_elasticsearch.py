@@ -7,6 +7,7 @@ from ops.framework import (
     EventSource,
     Object,
     ObjectEvents,
+    StoredState,
 )
 
 logger = logging.getLogger()
@@ -30,6 +31,7 @@ class ElasticsearchEvents(ObjectEvents):
 class Elasticsearch(Object):
     """Elasticsearch interface."""
 
+    _stored = StoredState()
     on = ElasticsearchEvents()
 
     def __init__(self, charm, relation_name):
@@ -37,6 +39,10 @@ class Elasticsearch(Object):
         super().__init__(charm, relation_name)
         self._charm = charm
         self._relation_name = relation_name
+
+        self._stored.set_default(
+            elasticsearch_ingress=str(),
+        )
 
         self.framework.observe(
             self._charm.on[self._relation_name].relation_changed,
@@ -51,10 +57,14 @@ class Elasticsearch(Object):
     def _on_relation_changed(self, event):
         """Set elasticsearch_ingress to _stored."""
         ingress = event.relation.data[event.unit]['ingress-address']
-        self.charm.set_elasticsearch_ingress(f'http://{ingress}:9200')
+        self._stored.elasticsearch_ingress = f'http://{ingress}:9200'
         self.on.elasticsearch_available.emit()
 
     def _on_relation_broken(self, event):
         """Set elasticsearch_ingress and emit elasticsearch_unavailable."""
-        self.charm.set_elasticsearch_ingress("")
+        self._stored.elasticsearch_ingress = ""
         self.on.elasticsearch_unavailable.emit()
+
+    def get_elasticsearch_ingress(self):
+        """Return elasticsearch_ingress."""
+        return self._stored.elasticsearch_ingress

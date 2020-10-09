@@ -4,6 +4,7 @@ import logging
 
 from interface_slurmctld import Slurmctld
 from interface_slurmctld_peer import SlurmctldPeer
+from nrpe_external_master import Nrpe
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -31,6 +32,8 @@ class SlurmctldCharm(CharmBase):
             slurmctld_controller_type=str(),
         )
 
+        self._nrpe = Nrpe(self, "nrpe-external-master")
+
         self._slurm_manager = SlurmManager(self, "slurmctld")
 
         self._slurmctld = Slurmctld(self, "slurmctld")
@@ -38,9 +41,6 @@ class SlurmctldCharm(CharmBase):
 
         event_handler_bindings = {
             self.on.install: self._on_install,
-
-            self.on.config_changed:
-            self._on_check_status_and_write_config,
 
             self._slurmctld.on.slurm_config_available:
             self._on_check_status_and_write_config,
@@ -88,7 +88,6 @@ class SlurmctldCharm(CharmBase):
 
         self._slurm_manager.render_config_and_restart(
             {
-                **self.model.config,
                 **slurm_config,
                 'munge_key': munge_key
             }
@@ -118,6 +117,10 @@ class SlurmctldCharm(CharmBase):
     def set_munge_key(self, munge_key):
         """Set the munge_key in _stored state."""
         self._stored.munge_key = munge_key
+
+    def get_slurm_component(self):
+        """Return the slurm component."""
+        return self._slurm_manager.slurm_component
 
     def get_hostname(self):
         """Return the hostname."""

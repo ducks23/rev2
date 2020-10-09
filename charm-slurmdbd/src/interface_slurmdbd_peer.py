@@ -47,6 +47,11 @@ class SlurmdbdPeer(Object):
             self._on_relation_changed
         )
 
+        self.framework.observe(
+            self._charm.on[self._relation_name].relation_departed,
+            self._on_relation_departed
+        )
+
     def _on_relation_created(self, event):
         """Set hostname and port on the unit data."""
         relation = self.framework.model.get_relation(self._relation_name)
@@ -156,6 +161,9 @@ class SlurmdbdPeer(Object):
 
             app_relation_data['slurmdbd_info'] = json.dumps(ctxt)
             self.on.slurmdbd_peer_available.emit()
+
+    def _on_relation_departed(self, event):
+        self.on.slurmdbd_peer_available.emit()
 
     @property
     def _relation(self):
