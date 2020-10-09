@@ -175,10 +175,6 @@ class SlurmdCharm(CharmBase):
             self._stored.partition_name = f"juju-compute-{random_string()}"
         return self._stored.partition_name
 
-    def set_munge_key(self, munge_key):
-        """Set the munge key."""
-        self._stored.munge_key = munge_key
-
     def get_slurm_component(self):
         """Return the slurm component."""
         return self._slurm_manager.slurm_component

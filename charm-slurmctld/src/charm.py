@@ -77,14 +77,8 @@ class SlurmctldCharm(CharmBase):
             return
 
         slurm_config = self._slurmctld.get_slurm_config_from_relation()
-        munge_key = self._stored.munge_key
 
-        self._slurm_manager.render_config_and_restart(
-            {
-                **slurm_config,
-                'munge_key': munge_key
-            }
-        )
+        self._slurm_manager.render_config_and_restart(slurm_config)
         self.unit.status = ActiveStatus("Slurmctld Available")
 
     def _check_status(self):

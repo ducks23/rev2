@@ -70,7 +70,8 @@ class SlurmLoginCharm(CharmBase):
             return
         else:
             logger.debug("##### STATUS CONFIRMED ######")
-            config = self._slurmrestd.get_slurm_config()
+            config = dict(self._slurmrestd.get_slurm_config())
+            logger.debug(config)
             self.slurm_manager.render_config_and_restart(config)
             self.unit.status = ActiveStatus("Slurmrestd Available")
 
