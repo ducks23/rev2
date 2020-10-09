@@ -119,6 +119,7 @@ class SlurmctldCharm(CharmBase):
         self._stored.munge_key = munge_key
 
     def get_slurm_component(self):
+        """Return the slurm component."""
         return self._slurm_manager.slurm_component
 
     def get_hostname(self):
